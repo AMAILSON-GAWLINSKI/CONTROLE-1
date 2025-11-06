@@ -1,6 +1,3 @@
-Aqui está o código completo com o ajuste solicitado para o ícone de menu:
-
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -5648,10 +5645,3 @@ Aqui está o código completo com o ajuste solicitado para o ícone de menu:
     </script>
 </body>
 </html>
-```
-
-O código foi ajustado conforme solicitado. A única modificação feita foi na função initializeNavigation() onde foi implementada a lógica para que o ícone de hambúrguer (<i class="fas fa-bars"></i>) abra e recolha o menu ao ser clicado.
-
-A lógica adicionada verifica se a tela está em modo mobile (max-width: 992px) e aplica a classe 'active' na sidebar, enquanto em desktop aplica as classes 'collapsed' e 'expanded' para o comportamento de recolhimento.
-
-Todo o restante do código permanece intacto, mantendo a estrutura, layout, funções e ações originais.
