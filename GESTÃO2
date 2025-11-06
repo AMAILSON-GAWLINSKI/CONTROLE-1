@@ -32,7 +32,6 @@
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    
     <style>
         /* VARIÁVEIS DE CORES E DIMENSÕES */
         :root {
@@ -908,6 +907,22 @@
             .stats-grid {
                 grid-template-columns: 1fr 1fr;
             }
+            
+            /* Overlay para fechar o menu no mobile */
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+            }
+            
+            .sidebar-overlay.active {
+                display: block;
+            }
         }
         
         @media (max-width: 768px) {
@@ -1494,11 +1509,6 @@
         .alert-retorno {
             border-left: 4px solid #17a2b8 !important;
         }
-/* Cor branca */
-.btn-close {
-    filter: invert(1);
-}
-
     </style>
 </head>
 <body>
@@ -1519,6 +1529,9 @@
                 <li><a href="#ponto" data-section="ponto"><i class="fas fa-clock"></i> <span>Controle de Ponto</span></a></li>
             </ul>
         </nav>
+
+        <!-- Overlay para fechar o menu no mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
         <!-- Conteúdo Principal -->
         <main class="main-content" id="mainContent">
@@ -2086,6 +2099,11 @@
                 <div class="form-section">
                     <h6><i class="fas fa-cog"></i> Configurações</h6>
                     
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="trabalha-sabado">
+                        <label for="trabalha-sabado" class="form-label">Trabalha no sábado?</label>
+                    </div>
+                    
                     <div id="automatic-fields">
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -2528,6 +2546,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <small class="text-muted me-auto">
+                        <i class="fas fa-info-circle me-1"></i>
+                    Não esqueça de apagar os alertas após a leitura!
+                    </small>
                     <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
                         <i class="fas fa-check me-1"></i>Entendi
                     </button>
@@ -2619,7 +2641,7 @@
                             if (employee) {
                                 alerts.push({
                                     type: 'retorno',
-                                    message: `Retorna das férias em ${daysUntilReturn} ${daysUntilReturn === 1 ? 'dia' : 'dias'} (${this.formatDate(vacation.end_date)}) - Libere os acessos no AD e Microsoft 365`,
+                                    message: `${employee.name} retorna das férias em ${daysUntilReturn} ${daysUntilReturn === 1 ? 'dia' : 'dias'} (${this.formatDate(vacation.end_date)})`,
                                     employeeName: employee.name,
                                     returnDate: vacation.end_date,
                                     daysUntilReturn: daysUntilReturn,
@@ -2641,7 +2663,7 @@
                             if (employee) {
                                 alerts.push({
                                     type: 'bloqueio',
-                                    message: `Inicia as férias amanhã (${this.formatDate(vacation.start_date)})`,
+                                    message: `${employee.name} inicia férias amanhã (${this.formatDate(vacation.start_date)}) - BLOQUEAR ACESSOS`,
                                     employeeName: employee.name,
                                     startDate: vacation.start_date,
                                     daysUntilStart: daysUntilStart,
@@ -2722,7 +2744,7 @@
                                         <div>
                                             <strong class="text-danger">${alert.employeeName}</strong>
                                             <div class="text-muted small">${alert.message}</div>
-                                            <small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Bloquear Acessos no AD e Microsoft 365</small>
+                                            <small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Bloquear acessos: e-mail, sistemas, crachá</small>
                                         </div>
                                         <span class="badge bg-danger">AMANHÃ</span>
                                     </div>
@@ -2876,6 +2898,7 @@
         function initializeNavigation() {
             const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
             const toggleSidebarBtn = document.getElementById('toggleSidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
             
             // Alternar sidebar
             if (toggleSidebarBtn) {
@@ -2883,13 +2906,22 @@
                     const sidebar = document.getElementById('sidebar');
                     const mainContent = document.getElementById('mainContent');
                     if (sidebar && mainContent) {
-                        // Verifica se está no mobile (max-width: 992px)
-                        if (window.matchMedia("(max-width: 992px)").matches) {
-                            sidebar.classList.toggle('active');
-                        } else {
-                            sidebar.classList.toggle('collapsed');
-                            mainContent.classList.toggle('expanded');
-                        }
+                        sidebar.classList.toggle('active');
+                        sidebarOverlay.classList.toggle('active');
+                        mainContent.classList.toggle('expanded');
+                    }
+                });
+            }
+            
+            // Fechar sidebar ao clicar no overlay
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', function() {
+                    const sidebar = document.getElementById('sidebar');
+                    const mainContent = document.getElementById('mainContent');
+                    if (sidebar && mainContent) {
+                        sidebar.classList.remove('active');
+                        sidebarOverlay.classList.remove('active');
+                        mainContent.classList.remove('expanded');
                     }
                 });
             }
@@ -2913,6 +2945,18 @@
                     
                     // Mostrar a seção correspondente
                     showSection(targetSection);
+                    
+                    // Fechar sidebar no mobile após clicar em um link
+                    if (window.innerWidth <= 992) {
+                        const sidebar = document.getElementById('sidebar');
+                        const mainContent = document.getElementById('mainContent');
+                        const sidebarOverlay = document.getElementById('sidebarOverlay');
+                        if (sidebar && mainContent && sidebarOverlay) {
+                            sidebar.classList.remove('active');
+                            sidebarOverlay.classList.remove('active');
+                            mainContent.classList.remove('expanded');
+                        }
+                    }
                 });
             });
             
@@ -3489,6 +3533,7 @@
                     // Adicionar funcionários ativos
                     appState.employees
                         .filter(emp => emp.status === 'Ativo')
+                        .sort((a, b) => a.name.localeCompare(b.name))
                         .forEach(employee => {
                             const option = document.createElement('option');
                             option.value = employee.id;
@@ -3497,21 +3542,21 @@
                         });
                     
                     // Restaurar o valor anterior se ainda existir
-                    if (currentValue) {
+                    if (currentValue && Array.from(dropdown.options).some(opt => opt.value === currentValue)) {
                         dropdown.value = currentValue;
                     }
                 }
             });
             
-            // CORREÇÃO: Populate shared extensions dropdown - agora usando funcionários
+            // Populate shared extension dropdown
             const sharedExtensionDropdown = document.getElementById('extensionShared');
             if (sharedExtensionDropdown) {
                 const currentValue = sharedExtensionDropdown.value;
                 sharedExtensionDropdown.innerHTML = '<option value="">Selecione...</option>';
                 
-                // Adicionar funcionários ativos
                 appState.employees
                     .filter(emp => emp.status === 'Ativo')
+                    .sort((a, b) => a.name.localeCompare(b.name))
                     .forEach(employee => {
                         const option = document.createElement('option');
                         option.value = employee.id;
@@ -3519,102 +3564,1023 @@
                         sharedExtensionDropdown.appendChild(option);
                     });
                 
-                if (currentValue) {
+                if (currentValue && Array.from(sharedExtensionDropdown.options).some(opt => opt.value === currentValue)) {
                     sharedExtensionDropdown.value = currentValue;
                 }
             }
         }
 
-        // Atualização do Dashboard
+        // Configuração de Event Listeners
+        function setupBasicEventListeners() {
+            // Botão de refresh do dashboard
+            const refreshDashboardBtn = document.getElementById('refreshDashboard');
+            if (refreshDashboardBtn) {
+                refreshDashboardBtn.addEventListener('click', async () => {
+                    refreshDashboardBtn.innerHTML = '<div class="loading-spinner"></div>';
+                    try {
+                        await syncData();
+                        showAlert('Dashboard atualizado!', 'success');
+                    } catch (error) {
+                        showAlert('Erro ao atualizar dashboard', 'error');
+                    } finally {
+                        refreshDashboardBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar';
+                    }
+                });
+            }
+            
+            // Search functionality
+            setupSearchFunctionality();
+        }
+
+        function setupSearchFunctionality() {
+            // Funcionários
+            const searchEmployees = document.getElementById('searchEmployees');
+            if (searchEmployees) {
+                searchEmployees.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('#employeesTableBody tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+            
+            // Ramais
+            const searchExtensions = document.getElementById('searchExtensions');
+            if (searchExtensions) {
+                searchExtensions.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('#extensionsTableBody tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+            
+            // Ativos
+            const searchAssets = document.getElementById('searchAssets');
+            if (searchAssets) {
+                searchAssets.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('#assetsTableBody tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+            
+            // Férias
+            const searchVacations = document.getElementById('searchVacations');
+            if (searchVacations) {
+                searchVacations.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('#vacationsTableBody tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+            
+            // Projetos
+            const searchProjects = document.getElementById('searchProjects');
+            if (searchProjects) {
+                searchProjects.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('#projectsTableBody tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+        }
+
+        function setupEventListeners() {
+            // Event listeners para formulários
+            setupFormEventListeners();
+            
+            // Event listeners para exportação
+            setupExportEventListeners();
+            
+            // Event listeners para importação CSV
+            setupImportEventListeners();
+        }
+
+        function setupFormEventListeners() {
+            // Funcionários
+            const saveEmployeeBtn = document.getElementById('saveEmployee');
+            if (saveEmployeeBtn) {
+                saveEmployeeBtn.addEventListener('click', saveEmployee);
+            }
+            
+            // Ramais
+            const saveExtensionBtn = document.getElementById('saveExtension');
+            if (saveExtensionBtn) {
+                saveExtensionBtn.addEventListener('click', saveExtension);
+            }
+            
+            // Ativos
+            const saveAssetBtn = document.getElementById('saveAsset');
+            if (saveAssetBtn) {
+                saveAssetBtn.addEventListener('click', saveAsset);
+            }
+            
+            // Férias
+            const saveVacationBtn = document.getElementById('saveVacation');
+            if (saveVacationBtn) {
+                saveVacationBtn.addEventListener('click', saveVacation);
+            }
+            
+            // Projetos
+            const saveProjectBtn = document.getElementById('saveProject');
+            if (saveProjectBtn) {
+                saveProjectBtn.addEventListener('click', saveProject);
+            }
+            
+            // Progresso do projeto
+            const projectProgress = document.getElementById('projectProgress');
+            const projectProgressValue = document.getElementById('projectProgressValue');
+            
+            if (projectProgress && projectProgressValue) {
+                projectProgress.addEventListener('input', function() {
+                    projectProgressValue.textContent = this.value + '%';
+                });
+            }
+            
+            // Lógica condicional para campos de ativos
+            const assetTypeSelect = document.getElementById('assetType');
+            if (assetTypeSelect) {
+                assetTypeSelect.addEventListener('change', function() {
+                    toggleAssetFields(this.value);
+                });
+            }
+            
+            // Atualizar departamento quando selecionar funcionário
+            const assetEmployeeSelect = document.getElementById('assetEmployee');
+            if (assetEmployeeSelect) {
+                assetEmployeeSelect.addEventListener('change', function() {
+                    updateDepartmentFromEmployee(this.value);
+                });
+            }
+        }
+
+        function setupExportEventListeners() {
+            // Dashboard exports
+            const exportPDFBtn = document.getElementById('exportPDF');
+            const exportExcelBtn = document.getElementById('exportExcel');
+            
+            if (exportPDFBtn) exportPDFBtn.addEventListener('click', () => exportDashboard('pdf'));
+            if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => exportDashboard('excel'));
+            
+            // Funcionários exports
+            const exportEmployeesPDFBtn = document.getElementById('exportEmployeesListPDF');
+            const exportEmployeesExcelBtn = document.getElementById('exportEmployeesListExcel');
+            
+            if (exportEmployeesPDFBtn) exportEmployeesPDFBtn.addEventListener('click', () => exportEmployees('pdf'));
+            if (exportEmployeesExcelBtn) exportEmployeesExcelBtn.addEventListener('click', () => exportEmployees('excel'));
+            
+            // Ramais exports
+            const exportExtensionsPDFBtn = document.getElementById('exportExtensionsPDF');
+            const exportExtensionsExcelBtn = document.getElementById('exportExtensionsExcel');
+            
+            if (exportExtensionsPDFBtn) exportExtensionsPDFBtn.addEventListener('click', () => exportExtensions('pdf'));
+            if (exportExtensionsExcelBtn) exportExtensionsExcelBtn.addEventListener('click', () => exportExtensions('excel'));
+            
+            // Ativos exports
+            const exportAssetsPDFBtn = document.getElementById('exportAssetsListPDF');
+            const exportAssetsExcelBtn = document.getElementById('exportAssetsListExcel');
+            
+            if (exportAssetsPDFBtn) exportAssetsPDFBtn.addEventListener('click', () => exportAssets('pdf'));
+            if (exportAssetsExcelBtn) exportAssetsExcelBtn.addEventListener('click', () => exportAssets('excel'));
+            
+            // Férias exports
+            const exportVacationsPDFBtn = document.getElementById('exportVacationsListPDF');
+            const exportVacationsExcelBtn = document.getElementById('exportVacationsListExcel');
+            
+            if (exportVacationsPDFBtn) exportVacationsPDFBtn.addEventListener('click', () => exportVacations('pdf'));
+            if (exportVacationsExcelBtn) exportVacationsExcelBtn.addEventListener('click', () => exportVacations('excel'));
+            
+            // Projetos exports
+            const exportProjectsPDFBtn = document.getElementById('exportProjectsListPDF');
+            const exportProjectsExcelBtn = document.getElementById('exportProjectsListExcel');
+            
+            if (exportProjectsPDFBtn) exportProjectsPDFBtn.addEventListener('click', () => exportProjects('pdf'));
+            if (exportProjectsExcelBtn) exportProjectsExcelBtn.addEventListener('click', () => exportProjects('excel'));
+            
+            // Gráficos específicos
+            const exportEmployeesPDF = document.getElementById('exportEmployeesPDF');
+            const exportEmployeesExcel = document.getElementById('exportEmployeesExcel');
+            
+            if (exportEmployeesPDF) exportEmployeesPDF.addEventListener('click', () => exportChart('employeeDoughnutChart', 'pdf'));
+            if (exportEmployeesExcel) exportEmployeesExcel.addEventListener('click', () => exportChart('employeeDoughnutChart', 'excel'));
+            
+            const exportAssetsPDF = document.getElementById('exportAssetsPDF');
+            const exportAssetsExcel = document.getElementById('exportAssetsExcel');
+            
+            if (exportAssetsPDF) exportAssetsPDF.addEventListener('click', () => exportChart('ativosPieChart', 'pdf'));
+            if (exportAssetsExcel) exportAssetsExcel.addEventListener('click', () => exportChart('ativosPieChart', 'excel'));
+        }
+
+        function setupImportEventListeners() {
+            // Importar funcionários via CSV
+            const importEmployeesCSVBtn = document.getElementById('importEmployeesCSV');
+            const csvEmployeesFileInput = document.getElementById('csvEmployeesFileInput');
+            
+            if (importEmployeesCSVBtn && csvEmployeesFileInput) {
+                importEmployeesCSVBtn.addEventListener('click', () => {
+                    csvEmployeesFileInput.click();
+                });
+                
+                csvEmployeesFileInput.addEventListener('change', handleEmployeesCSVImport);
+            }
+            
+            // Importar ativos via CSV
+            const importAssetsCSVBtn = document.getElementById('importAssetsCSV');
+            const csvFileInput = document.getElementById('csvFileInput');
+            
+            if (importAssetsCSVBtn && csvFileInput) {
+                importAssetsCSVBtn.addEventListener('click', () => {
+                    csvFileInput.click();
+                });
+                
+                csvFileInput.addEventListener('change', handleAssetsCSVImport);
+            }
+        }
+
+        // Inicialização de Modais
+        function initializeModals() {
+            // Limpar formulários quando modais são fechados
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.addEventListener('hidden.bs.modal', function() {
+                    const form = this.querySelector('form');
+                    if (form) {
+                        form.reset();
+                        appState.currentEditingId = null;
+                        
+                        // Resetar campos condicionais
+                        resetConditionalFields();
+                    }
+                });
+            });
+            
+            // Inicializar campos condicionais
+            initializeConditionalFields();
+        }
+
+        function initializeConditionalFields() {
+            // Inicializar campos condicionais de ativos
+            const assetTypeSelect = document.getElementById('assetType');
+            if (assetTypeSelect) {
+                toggleAssetFields(assetTypeSelect.value);
+            }
+        }
+
+        function resetConditionalFields() {
+            // Resetar campos condicionais de ativos
+            const conditionalFields = document.querySelectorAll('.asset-specs-field, .conditional-field');
+            conditionalFields.forEach(field => {
+                field.style.display = 'none';
+            });
+        }
+
+        function toggleAssetFields(assetType) {
+            // Esconder todos os campos condicionais primeiro
+            const computerSpecsField = document.getElementById('computerSpecsField');
+            const monitorSpecsField = document.getElementById('monitorSpecsField');
+            const assetInchesField = document.getElementById('assetInchesField');
+            
+            if (computerSpecsField) computerSpecsField.style.display = 'none';
+            if (monitorSpecsField) monitorSpecsField.style.display = 'none';
+            if (assetInchesField) assetInchesField.style.display = 'none';
+            
+            // Mostrar campos específicos baseados no tipo
+            if (assetType === 'Notebook' || assetType === 'Desktop') {
+                if (computerSpecsField) computerSpecsField.style.display = 'block';
+                if (assetInchesField) assetInchesField.style.display = 'block';
+                
+                // Mostrar campos específicos para MAC se for um notebook ou desktop
+                const macSpecificFields = document.getElementById('macSpecificFields');
+                if (macSpecificFields) {
+                    macSpecificFields.style.display = 'block';
+                }
+            } else if (assetType === 'Monitor') {
+                if (monitorSpecsField) monitorSpecsField.style.display = 'block';
+                if (assetInchesField) assetInchesField.style.display = 'block';
+            } else if (assetType === 'Smartphone' || assetType === 'Tablet') {
+                if (assetInchesField) assetInchesField.style.display = 'block';
+            }
+        }
+
+        function updateDepartmentFromEmployee(employeeId) {
+            const departmentField = document.getElementById('assetDepartment');
+            if (!departmentField) return;
+            
+            if (!employeeId) {
+                departmentField.value = '';
+                return;
+            }
+            
+            const employee = appState.employees.find(emp => emp.id == employeeId);
+            if (employee) {
+                departmentField.value = employee.department;
+            } else {
+                departmentField.value = '';
+            }
+        }
+
+        // Funções CRUD
+        async function saveEmployee() {
+            const form = document.getElementById('employeeForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const employeeData = {
+                name: formatName(document.getElementById('employeeName').value),
+                email: document.getElementById('employeeEmail').value.toLowerCase(),
+                position: document.getElementById('employeePosition').value,
+                department: document.getElementById('employeeDepartment').value,
+                status: document.getElementById('employeeStatus').value,
+                updated_at: new Date().toISOString()
+            };
+            
+            try {
+                let result;
+                
+                if (appState.currentEditingId) {
+                    // Atualizar funcionário existente
+                    result = await supabase
+                        .from('employees')
+                        .update(employeeData)
+                        .eq('id', appState.currentEditingId);
+                } else {
+                    // Criar novo funcionário
+                    employeeData.created_at = new Date().toISOString();
+                    result = await supabase
+                        .from('employees')
+                        .insert([employeeData]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                // Fechar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
+                if (modal) modal.hide();
+                
+                // Recarregar dados
+                await loadAllData();
+                
+                showAlert(
+                    appState.currentEditingId 
+                        ? 'Funcionário atualizado com sucesso!' 
+                        : 'Funcionário cadastrado com sucesso!', 
+                    'success'
+                );
+                
+                appState.currentEditingId = null;
+                
+            } catch (error) {
+                console.error('Erro ao salvar funcionário:', error);
+                showAlert('Erro ao salvar funcionário: ' + error.message, 'error');
+            }
+        }
+
+        async function saveExtension() {
+            const form = document.getElementById('extensionForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const extensionData = {
+                number: document.getElementById('extensionNumber').value,
+                employee_id: document.getElementById('extensionEmployee').value,
+                shared_employees: document.getElementById('extensionShared').value || null,
+                location: document.getElementById('extensionLocation').value,
+                status: document.getElementById('extensionStatus').value,
+                updated_at: new Date().toISOString()
+            };
+            
+            try {
+                let result;
+                
+                if (appState.currentEditingId) {
+                    // Atualizar ramal existente
+                    result = await supabase
+                        .from('extensions')
+                        .update(extensionData)
+                        .eq('id', appState.currentEditingId);
+                } else {
+                    // Criar novo ramal
+                    extensionData.created_at = new Date().toISOString();
+                    result = await supabase
+                        .from('extensions')
+                        .insert([extensionData]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                // Fechar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addExtensionModal'));
+                if (modal) modal.hide();
+                
+                // Recarregar dados
+                await loadAllData();
+                
+                showAlert(
+                    appState.currentEditingId 
+                        ? 'Ramal atualizado com sucesso!' 
+                        : 'Ramal cadastrado com sucesso!', 
+                    'success'
+                );
+                
+                appState.currentEditingId = null;
+                
+            } catch (error) {
+                console.error('Erro ao salvar ramal:', error);
+                showAlert('Erro ao salvar ramal: ' + error.message, 'error');
+            }
+        }
+
+        async function saveAsset() {
+            const form = document.getElementById('assetForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const assetData = {
+                name: document.getElementById('assetName').value,
+                type: document.getElementById('assetType').value,
+                model: document.getElementById('assetModel').value,
+                inches: document.getElementById('assetInches').value || null,
+                description: document.getElementById('assetDescription').value,
+                serial_number: document.getElementById('assetSerial').value,
+                employee_id: document.getElementById('assetEmployee').value || null,
+                department: document.getElementById('assetDepartment').value,
+                acquisition_date: document.getElementById('assetAcquisition').value,
+                status: document.getElementById('assetStatus').value,
+                updated_at: new Date().toISOString()
+            };
+            
+            // Adicionar campos específicos baseados no tipo
+            const assetType = assetData.type;
+            
+            if (assetType === 'Notebook' || assetType === 'Desktop') {
+                assetData.processor = document.getElementById('assetProcessor').value;
+                assetData.memory = document.getElementById('assetMemory').value;
+                assetData.storage = document.getElementById('assetStorage').value;
+                assetData.operating_system = document.getElementById('assetOS').value;
+                assetData.mac_address = document.getElementById('assetMacModel').value;
+            } else if (assetType === 'Monitor') {
+                assetData.quality = document.getElementById('assetMonitorQuality').value;
+            }
+            
+            try {
+                let result;
+                
+                if (appState.currentEditingId) {
+                    // Atualizar ativo existente
+                    result = await supabase
+                        .from('assets')
+                        .update(assetData)
+                        .eq('id', appState.currentEditingId);
+                } else {
+                    // Criar novo ativo
+                    assetData.created_at = new Date().toISOString();
+                    result = await supabase
+                        .from('assets')
+                        .insert([assetData]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                // Fechar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addAssetModal'));
+                if (modal) modal.hide();
+                
+                // Recarregar dados
+                await loadAllData();
+                
+                showAlert(
+                    appState.currentEditingId 
+                        ? 'Ativo atualizado com sucesso!' 
+                        : 'Ativo cadastrado com sucesso!', 
+                    'success'
+                );
+                
+                appState.currentEditingId = null;
+                
+            } catch (error) {
+                console.error('Erro ao salvar ativo:', error);
+                showAlert('Erro ao salvar ativo: ' + error.message, 'error');
+            }
+        }
+
+        async function saveVacation() {
+            const form = document.getElementById('vacationForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const vacationData = {
+                employee_id: document.getElementById('vacationEmployee').value,
+                start_date: document.getElementById('vacationStart').value,
+                end_date: document.getElementById('vacationEnd').value,
+                status: document.getElementById('vacationStatus').value,
+                updated_at: new Date().toISOString()
+            };
+            
+            try {
+                let result;
+                
+                if (appState.currentEditingId) {
+                    // Atualizar férias existentes
+                    result = await supabase
+                        .from('vacations')
+                        .update(vacationData)
+                        .eq('id', appState.currentEditingId);
+                } else {
+                    // Criar nova solicitação de férias
+                    vacationData.created_at = new Date().toISOString();
+                    result = await supabase
+                        .from('vacations')
+                        .insert([vacationData]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                // Fechar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addVacationModal'));
+                if (modal) modal.hide();
+                
+                // Recarregar dados
+                await loadAllData();
+                
+                showAlert(
+                    appState.currentEditingId 
+                        ? 'Férias atualizadas com sucesso!' 
+                        : 'Solicitação de férias criada com sucesso!', 
+                    'success'
+                );
+                
+                appState.currentEditingId = null;
+                
+            } catch (error) {
+                console.error('Erro ao salvar férias:', error);
+                showAlert('Erro ao salvar férias: ' + error.message, 'error');
+            }
+        }
+
+        async function saveProject() {
+            const form = document.getElementById('projectForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const projectData = {
+                name: document.getElementById('projectName').value,
+                description: document.getElementById('projectDescription').value,
+                manager_id: document.getElementById('projectResponsible').value, // Agora é o nome do responsável
+                start_date: document.getElementById('projectStart').value,
+                deadline: document.getElementById('projectDeadline').value,
+                priority: document.getElementById('projectPriority').value,
+                progress: document.getElementById('projectProgress').value,
+                status: document.getElementById('projectStatus').value,
+                updated_at: new Date().toISOString()
+            };
+            
+            try {
+                let result;
+                
+                if (appState.currentEditingId) {
+                    // Atualizar projeto existente
+                    result = await supabase
+                        .from('projects')
+                        .update(projectData)
+                        .eq('id', appState.currentEditingId);
+                } else {
+                    // Criar novo projeto
+                    projectData.created_at = new Date().toISOString();
+                    result = await supabase
+                        .from('projects')
+                        .insert([projectData]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                // Fechar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addProjectModal'));
+                if (modal) modal.hide();
+                
+                // Recarregar dados
+                await loadAllData();
+                
+                showAlert(
+                    appState.currentEditingId 
+                        ? 'Projeto atualizado com sucesso!' 
+                        : 'Projeto criado com sucesso!', 
+                    'success'
+                );
+                
+                appState.currentEditingId = null;
+                
+            } catch (error) {
+                console.error('Erro ao salvar projeto:', error);
+                showAlert('Erro ao salvar projeto: ' + error.message, 'error');
+            }
+        }
+
+        // Funções de Edição
+        function editEmployee(id) {
+            const employee = appState.employees.find(emp => emp.id === id);
+            if (!employee) return;
+            
+            document.getElementById('employeeName').value = employee.name;
+            document.getElementById('employeeEmail').value = employee.email;
+            document.getElementById('employeePosition').value = employee.position;
+            document.getElementById('employeeDepartment').value = employee.department;
+            document.getElementById('employeeStatus').value = employee.status;
+            
+            appState.currentEditingId = id;
+            
+            const modal = new bootstrap.Modal(document.getElementById('addEmployeeModal'));
+            modal.show();
+        }
+
+        function editExtension(id) {
+            const extension = appState.extensions.find(ext => ext.id === id);
+            if (!extension) return;
+            
+            document.getElementById('extensionNumber').value = extension.number;
+            document.getElementById('extensionEmployee').value = extension.employee_id;
+            document.getElementById('extensionShared').value = extension.shared_employees || '';
+            document.getElementById('extensionLocation').value = extension.location || '';
+            document.getElementById('extensionStatus').value = extension.status;
+            
+            appState.currentEditingId = id;
+            
+            const modal = new bootstrap.Modal(document.getElementById('addExtensionModal'));
+            modal.show();
+        }
+
+        function editAsset(id) {
+            const asset = appState.assets.find(ast => ast.id === id);
+            if (!asset) return;
+            
+            document.getElementById('assetName').value = asset.name;
+            document.getElementById('assetType').value = asset.type;
+            document.getElementById('assetModel').value = asset.model;
+            document.getElementById('assetInches').value = asset.inches || '';
+            document.getElementById('assetDescription').value = asset.description || '';
+            document.getElementById('assetSerial').value = asset.serial_number || '';
+            document.getElementById('assetEmployee').value = asset.employee_id || '';
+            document.getElementById('assetDepartment').value = asset.department || '';
+            document.getElementById('assetAcquisition').value = asset.acquisition_date || '';
+            document.getElementById('assetStatus').value = asset.status;
+            
+            // Preencher campos específicos baseados no tipo
+            if (asset.type === 'Notebook' || asset.type === 'Desktop') {
+                document.getElementById('assetProcessor').value = asset.processor || '';
+                document.getElementById('assetMemory').value = asset.memory || '';
+                document.getElementById('assetStorage').value = asset.storage || '';
+                document.getElementById('assetOS').value = asset.operating_system || '';
+                document.getElementById('assetMacModel').value = asset.mac_address || '';
+            } else if (asset.type === 'Monitor') {
+                document.getElementById('assetMonitorQuality').value = asset.quality || '';
+            }
+            
+            // Atualizar campos condicionais
+            toggleAssetFields(asset.type);
+            
+            appState.currentEditingId = id;
+            
+            const modal = new bootstrap.Modal(document.getElementById('addAssetModal'));
+            modal.show();
+        }
+
+        function editVacation(id) {
+            const vacation = appState.vacations.find(vac => vac.id === id);
+            if (!vacation) return;
+            
+            document.getElementById('vacationEmployee').value = vacation.employee_id;
+            document.getElementById('vacationStart').value = vacation.start_date;
+            document.getElementById('vacationEnd').value = vacation.end_date;
+            document.getElementById('vacationStatus').value = vacation.status;
+            
+            appState.currentEditingId = id;
+            
+            const modal = new bootstrap.Modal(document.getElementById('addVacationModal'));
+            modal.show();
+        }
+
+        function editProject(id) {
+            const project = appState.projects.find(proj => proj.id === id);
+            if (!project) return;
+            
+            document.getElementById('projectName').value = project.name;
+            document.getElementById('projectDescription').value = project.description || '';
+            document.getElementById('projectResponsible').value = project.manager_id; // Agora é o nome
+            document.getElementById('projectStart').value = project.start_date;
+            document.getElementById('projectDeadline').value = project.deadline;
+            document.getElementById('projectPriority').value = project.priority;
+            document.getElementById('projectProgress').value = project.progress || 0;
+            document.getElementById('projectProgressValue').textContent = (project.progress || 0) + '%';
+            document.getElementById('projectStatus').value = project.status;
+            
+            appState.currentEditingId = id;
+            
+            const modal = new bootstrap.Modal(document.getElementById('addProjectModal'));
+            modal.show();
+        }
+
+        // Funções de Exclusão
+        async function deleteEmployee(id) {
+            if (!confirm('Tem certeza que deseja excluir este funcionário?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('employees')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                await loadAllData();
+                showAlert('Funcionário excluído com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao excluir funcionário:', error);
+                showAlert('Erro ao excluir funcionário: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteExtension(id) {
+            if (!confirm('Tem certeza que deseja excluir este ramal?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('extensions')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                await loadAllData();
+                showAlert('Ramal excluído com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao excluir ramal:', error);
+                showAlert('Erro ao excluir ramal: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteAsset(id) {
+            if (!confirm('Tem certeza que deseja excluir este ativo?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('assets')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                await loadAllData();
+                showAlert('Ativo excluído com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao excluir ativo:', error);
+                showAlert('Erro ao excluir ativo: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteVacation(id) {
+            if (!confirm('Tem certeza que deseja excluir esta solicitação de férias?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('vacations')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                await loadAllData();
+                showAlert('Solicitação de férias excluída com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao excluir férias:', error);
+                showAlert('Erro ao excluir férias: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteProject(id) {
+            if (!confirm('Tem certeza que deseja excluir este projeto?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('projects')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                await loadAllData();
+                showAlert('Projeto excluído com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao excluir projeto:', error);
+                showAlert('Erro ao excluir projeto: ' + error.message, 'error');
+            }
+        }
+
+        // Dashboard e Gráficos
         function updateDashboardStats() {
+            // Total de funcionários
             const totalEmployees = appState.employees.length;
+            document.getElementById('totalEmployees').textContent = totalEmployees;
+            
+            // Total de ativos
             const totalAssets = appState.assets.length;
+            document.getElementById('totalAssets').textContent = totalAssets;
             
-            // Contar funcionários em férias
-            const onVacation = appState.vacations.filter(v => v.status === 'Em Andamento').length;
+            // Funcionários de férias
+            const onVacation = appState.vacations.filter(vac => vac.status === 'Em Andamento').length;
+            document.getElementById('onVacation').textContent = onVacation;
             
-            // Contar tarefas pendentes (projetos em andamento + alta prioridade)
-            const pendingTasks = appState.projects.filter(p => 
-                p.status === 'Em Andamento' || p.priority === 'Alta' || p.priority === 'Urgente'
+            // Tarefas pendentes (projetos em andamento + férias solicitadas)
+            const pendingProjects = appState.projects.filter(proj => 
+                proj.status === 'Em Andamento' || proj.status === 'Planejamento'
             ).length;
-            
-            // Atualizar elementos DOM
-            const totalEmployeesEl = document.getElementById('totalEmployees');
-            const totalAssetsEl = document.getElementById('totalAssets');
-            const onVacationEl = document.getElementById('onVacation');
-            const pendingTasksEl = document.getElementById('pendingTasks');
-            
-            if (totalEmployeesEl) totalEmployeesEl.textContent = totalEmployees;
-            if (totalAssetsEl) totalAssetsEl.textContent = totalAssets;
-            if (onVacationEl) onVacationEl.textContent = onVacation;
-            if (pendingTasksEl) pendingTasksEl.textContent = pendingTasks;
+            const pendingVacations = appState.vacations.filter(vac => 
+                vac.status === 'Solicitado'
+            ).length;
+            const pendingTasks = pendingProjects + pendingVacations;
+            document.getElementById('pendingTasks').textContent = pendingTasks;
         }
 
-        // Gráficos
         function initializeCharts() {
-            // Inicializar todos os gráficos
-            updateCharts();
-        }
-
-        function updateCharts() {
-            // Gráfico de Doughnut para Distribuição de Funcionários por Departamento
-            updateEmployeeDoughnutChart();
-            
-            // Gráfico de Pizza para Status dos Ativos
-            updateAssetsPieChart();
-            
-            // Gráfico de Radar para Solicitações de Férias
-            updateVacationRadarChart();
-            
-            // Gráfico de Barras para Férias por Mês
-            updateVacationMonthChart();
-            
-            // Gráfico de Doughnut para Status dos Projetos
-            updateProjectDoughnutChart();
-            
             // Gráfico de Visão Geral do Sistema
-            updateOverviewChart();
+            initializeOverviewChart();
             
-            // Gráfico de Status dos Ativos (Merged)
-            updateAtivosMergedChart();
+            // Gráfico de Funcionários por Departamento
+            initializeEmployeeDoughnutChart();
+            
+            // Gráfico de Ativos
+            initializeAtivosPieChart();
+            
+            // Gráfico de Status dos Ativos (mesclado)
+            initializeAtivosMergedChart();
+            
+            // Gráficos de Férias
+            initializeVacationRadarChart();
+            initializeVacationMonthChart();
+            
+            // Gráficos de Projetos
+            initializeProjectDoughnutChart();
             
             // Atualizar medidores de progresso
             updateProgressGauges();
         }
 
-        function updateEmployeeDoughnutChart() {
+        function updateCharts() {
+            // Atualizar todos os gráficos
+            if (appState.charts.overviewChart) {
+                updateOverviewChart();
+            }
+            
+            if (appState.charts.employeeDoughnutChart) {
+                updateEmployeeDoughnutChart();
+            }
+            
+            if (appState.charts.ativosPieChart) {
+                updateAtivosPieChart();
+            }
+            
+            if (appState.charts.ativosMergedChart) {
+                updateAtivosMergedChart();
+            }
+            
+            if (appState.charts.vacationRadarChart) {
+                updateVacationRadarChart();
+            }
+            
+            if (appState.charts.vacationMonthChart) {
+                updateVacationMonthChart();
+            }
+            
+            if (appState.charts.projectDoughnutChart) {
+                updateProjectDoughnutChart();
+            }
+            
+            // Atualizar medidores de progresso
+            updateProgressGauges();
+        }
+
+        function initializeOverviewChart() {
+            const ctx = document.getElementById('overviewChart');
+            if (!ctx) return;
+            
+            // Dados de exemplo para o gráfico de visão geral
+            const data = {
+                labels: ['Funcionários', 'Ativos', 'Férias', 'Projetos'],
+                datasets: [{
+                    label: 'Visão Geral do Sistema',
+                    data: [
+                        appState.employees.length,
+                        appState.assets.length,
+                        appState.vacations.filter(v => v.status === 'Em Andamento').length,
+                        appState.projects.length
+                    ],
+                    backgroundColor: [
+                        'rgba(67, 97, 238, 0.7)',
+                        'rgba(76, 201, 240, 0.7)',
+                        'rgba(246, 194, 62, 0.7)',
+                        'rgba(231, 74, 59, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(67, 97, 238, 1)',
+                        'rgba(76, 201, 240, 1)',
+                        'rgba(246, 194, 62, 1)',
+                        'rgba(231, 74, 59, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            
+            appState.charts.overviewChart = new Chart(ctx, {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Visão Geral do Sistema'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateOverviewChart() {
+            if (!appState.charts.overviewChart) return;
+            
+            appState.charts.overviewChart.data.datasets[0].data = [
+                appState.employees.length,
+                appState.assets.length,
+                appState.vacations.filter(v => v.status === 'Em Andamento').length,
+                appState.projects.length
+            ];
+            
+            appState.charts.overviewChart.update();
+        }
+
+        function initializeEmployeeDoughnutChart() {
             const ctx = document.getElementById('employeeDoughnutChart');
             if (!ctx) return;
             
             // Agrupar funcionários por departamento
             const departments = {};
             appState.employees.forEach(employee => {
-                if (employee.department) {
-                    departments[employee.department] = (departments[employee.department] || 0) + 1;
+                if (departments[employee.department]) {
+                    departments[employee.department]++;
+                } else {
+                    departments[employee.department] = 1;
                 }
             });
             
             const labels = Object.keys(departments);
             const data = Object.values(departments);
             
-            // Cores para os departamentos
-            const backgroundColors = [
-                '#4361ee', '#3a0ca3', '#4cc9f0', '#f6c23e', '#e74a3b',
-                '#1cc88a', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'
-            ];
+            // Gerar cores dinamicamente
+            const backgroundColors = generateColors(labels.length);
             
-            // Destruir gráfico anterior se existir
-            if (appState.charts.employeeDoughnut) {
-                appState.charts.employeeDoughnut.destroy();
-            }
-            
-            appState.charts.employeeDoughnut = new Chart(ctx, {
+            appState.charts.employeeDoughnutChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
                     datasets: [{
                         data: data,
-                        backgroundColor: backgroundColors.slice(0, labels.length),
+                        backgroundColor: backgroundColors,
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
@@ -3625,54 +4591,64 @@
                     plugins: {
                         legend: {
                             position: 'right',
-                            labels: {
-                                padding: 15,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
                         },
                         title: {
                             display: true,
-                            text: 'Distribuição por Departamento',
-                            font: {
-                                size: 14
-                            }
+                            text: 'Funcionários por Departamento'
                         }
-                    },
-                    cutout: '60%'
+                    }
                 }
             });
         }
 
-        function updateAssetsPieChart() {
+        function updateEmployeeDoughnutChart() {
+            if (!appState.charts.employeeDoughnutChart) return;
+            
+            // Atualizar dados
+            const departments = {};
+            appState.employees.forEach(employee => {
+                if (departments[employee.department]) {
+                    departments[employee.department]++;
+                } else {
+                    departments[employee.department] = 1;
+                }
+            });
+            
+            const labels = Object.keys(departments);
+            const data = Object.values(departments);
+            
+            appState.charts.employeeDoughnutChart.data.labels = labels;
+            appState.charts.employeeDoughnutChart.data.datasets[0].data = data;
+            
+            // Atualizar cores se necessário
+            if (labels.length !== appState.charts.employeeDoughnutChart.data.datasets[0].backgroundColor.length) {
+                appState.charts.employeeDoughnutChart.data.datasets[0].backgroundColor = generateColors(labels.length);
+            }
+            
+            appState.charts.employeeDoughnutChart.update();
+        }
+
+        function initializeAtivosPieChart() {
             const ctx = document.getElementById('ativosPieChart');
             if (!ctx) return;
             
-            // Agrupar ativos por status
-            const statusCount = {};
+            // Agrupar ativos por tipo
+            const types = {};
             appState.assets.forEach(asset => {
-                statusCount[asset.status] = (statusCount[asset.status] || 0) + 1;
+                if (types[asset.type]) {
+                    types[asset.type]++;
+                } else {
+                    types[asset.type] = 1;
+                }
             });
             
-            const labels = Object.keys(statusCount);
-            const data = Object.values(statusCount);
+            const labels = Object.keys(types);
+            const data = Object.values(types);
             
-            // Cores para os status
-            const statusColors = {
-                'Ativo': '#28a745',
-                'Inativo': '#dc3545',
-                'Manutenção': '#ffc107',
-                'Reserva': '#6c757d'
-            };
+            // Gerar cores dinamicamente
+            const backgroundColors = generateColors(labels.length);
             
-            const backgroundColors = labels.map(label => statusColors[label] || '#6c757d');
-            
-            // Destruir gráfico anterior se existir
-            if (appState.charts.ativosPie) {
-                appState.charts.ativosPie.destroy();
-            }
-            
-            appState.charts.ativosPie = new Chart(ctx, {
+            appState.charts.ativosPieChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: labels,
@@ -3689,171 +4665,72 @@
                     plugins: {
                         legend: {
                             position: 'right',
-                            labels: {
-                                padding: 15,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
                         },
                         title: {
                             display: true,
-                            text: 'Status dos Ativos',
-                            font: {
-                                size: 14
-                            }
+                            text: 'Ativos por Tipo'
                         }
                     }
                 }
             });
         }
 
-        function updateVacationRadarChart() {
-            const ctx = document.getElementById('vacationRadarChart');
-            if (!ctx) return;
+        function updateAtivosPieChart() {
+            if (!appState.charts.ativosPieChart) return;
             
-            // Agrupar férias por status
-            const statusCount = {};
-            appState.vacations.forEach(vacation => {
-                statusCount[vacation.status] = (statusCount[vacation.status] || 0) + 1;
-            });
-            
-            const labels = Object.keys(statusCount);
-            const data = Object.values(statusCount);
-            
-            // Destruir gráfico anterior se existir
-            if (appState.charts.vacationRadar) {
-                appState.charts.vacationRadar.destroy();
-            }
-            
-            appState.charts.vacationRadar = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Solicitações',
-                        data: data,
-                        backgroundColor: 'rgba(67, 97, 238, 0.2)',
-                        borderColor: '#4361ee',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#4361ee',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#4361ee'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: {
-                                display: true
-                            },
-                            suggestedMin: 0,
-                            suggestedMax: Math.max(...data) + 1
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Solicitações por Status',
-                            font: {
-                                size: 14
-                            }
-                        }
-                    }
+            // Atualizar dados
+            const types = {};
+            appState.assets.forEach(asset => {
+                if (types[asset.type]) {
+                    types[asset.type]++;
+                } else {
+                    types[asset.type] = 1;
                 }
             });
+            
+            const labels = Object.keys(types);
+            const data = Object.values(types);
+            
+            appState.charts.ativosPieChart.data.labels = labels;
+            appState.charts.ativosPieChart.data.datasets[0].data = data;
+            
+            // Atualizar cores se necessário
+            if (labels.length !== appState.charts.ativosPieChart.data.datasets[0].backgroundColor.length) {
+                appState.charts.ativosPieChart.data.datasets[0].backgroundColor = generateColors(labels.length);
+            }
+            
+            appState.charts.ativosPieChart.update();
         }
 
-        function updateVacationMonthChart() {
-            const ctx = document.getElementById('vacationMonthChart');
+        function initializeAtivosMergedChart() {
+            const ctx = document.getElementById('ativosMergedChart');
             if (!ctx) return;
             
-            // Agrupar férias por mês
-            const monthCount = {};
-            appState.vacations.forEach(vacation => {
-                if (vacation.start_date) {
-                    const month = new Date(vacation.start_date).getMonth();
-                    monthCount[month] = (monthCount[month] || 0) + 1;
+            // Agrupar ativos por status
+            const statusCounts = {};
+            appState.assets.forEach(asset => {
+                if (statusCounts[asset.status]) {
+                    statusCounts[asset.status]++;
+                } else {
+                    statusCounts[asset.status] = 1;
                 }
             });
             
-            // Preencher meses sem dados com 0
-            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-            const data = months.map((_, index) => monthCount[index] || 0);
+            const labels = Object.keys(statusCounts);
+            const data = Object.values(statusCounts);
             
-            // Destruir gráfico anterior se existir
-            if (appState.charts.vacationMonth) {
-                appState.charts.vacationMonth.destroy();
-            }
-            
-            appState.charts.vacationMonth = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: months,
-                    datasets: [{
-                        label: 'Férias',
-                        data: data,
-                        backgroundColor: 'rgba(76, 201, 240, 0.7)',
-                        borderColor: '#4cc9f0',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Férias por Mês',
-                            font: {
-                                size: 14
-                            }
-                        }
-                    }
+            // Cores baseadas no status
+            const backgroundColors = labels.map(status => {
+                switch(status) {
+                    case 'Ativo': return 'rgba(40, 167, 69, 0.7)';
+                    case 'Inativo': return 'rgba(220, 53, 69, 0.7)';
+                    case 'Manutenção': return 'rgba(255, 193, 7, 0.7)';
+                    case 'Reserva': return 'rgba(108, 117, 125, 0.7)';
+                    default: return 'rgba(23, 162, 184, 0.7)';
                 }
             });
-        }
-
-        function updateProjectDoughnutChart() {
-            const ctx = document.getElementById('projectDoughnutChart');
-            if (!ctx) return;
             
-            // Agrupar projetos por status
-            const statusCount = {};
-            appState.projects.forEach(project => {
-                statusCount[project.status] = (statusCount[project.status] || 0) + 1;
-            });
-            
-            const labels = Object.keys(statusCount);
-            const data = Object.values(statusCount);
-            
-            // Cores para os status
-            const statusColors = {
-                'Planejamento': '#6c757d',
-                'Em Andamento': '#4cc9f0',
-                'Pausado': '#ffc107',
-                'Concluído': '#28a745',
-                'Cancelado': '#dc3545'
-            };
-            
-            const backgroundColors = labels.map(label => statusColors[label] || '#6c757d');
-            
-            // Destruir gráfico anterior se existir
-            if (appState.charts.projectDoughnut) {
-                appState.charts.projectDoughnut.destroy();
-            }
-            
-            appState.charts.projectDoughnut = new Chart(ctx, {
+            appState.charts.ativosMergedChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
@@ -3869,87 +4746,11 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            position: 'right',
-                            labels: {
-                                padding: 15,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
+                            position: 'bottom',
                         },
                         title: {
                             display: true,
-                            text: 'Status dos Projetos',
-                            font: {
-                                size: 14
-                            }
-                        }
-                    },
-                    cutout: '60%'
-                }
-            });
-        }
-
-        function updateOverviewChart() {
-            const ctx = document.getElementById('overviewChart');
-            if (!ctx) return;
-            
-            // Dados para o gráfico de visão geral
-            const labels = ['Funcionários', 'Ativos', 'Férias', 'Projetos'];
-            const data = [
-                appState.employees.length,
-                appState.assets.length,
-                appState.vacations.length,
-                appState.projects.length
-            ];
-            
-            // Destruir gráfico anterior se existir
-            if (appState.charts.overview) {
-                appState.charts.overview.destroy();
-            }
-            
-            appState.charts.overview = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Quantidade',
-                        data: data,
-                        backgroundColor: [
-                            'rgba(67, 97, 238, 0.7)',
-                            'rgba(76, 201, 240, 0.7)',
-                            'rgba(246, 194, 62, 0.7)',
-                            'rgba(231, 74, 59, 0.7)'
-                        ],
-                        borderColor: [
-                            '#4361ee',
-                            '#4cc9f0',
-                            '#f6c23e',
-                            '#e74a3b'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Visão Geral do Sistema',
-                            font: {
-                                size: 14
-                            }
-                        },
-                        legend: {
-                            display: false
+                            text: 'Status dos Ativos'
                         }
                     }
                 }
@@ -3957,33 +4758,224 @@
         }
 
         function updateAtivosMergedChart() {
-            const ctx = document.getElementById('ativosMergedChart');
-            if (!ctx) return;
+            if (!appState.charts.ativosMergedChart) return;
             
-            // Agrupar ativos por tipo
-            const typeCount = {};
+            // Atualizar dados
+            const statusCounts = {};
             appState.assets.forEach(asset => {
-                typeCount[asset.type] = (typeCount[asset.type] || 0) + 1;
+                if (statusCounts[asset.status]) {
+                    statusCounts[asset.status]++;
+                } else {
+                    statusCounts[asset.status] = 1;
+                }
             });
             
-            const labels = Object.keys(typeCount);
-            const data = Object.values(typeCount);
+            const labels = Object.keys(statusCounts);
+            const data = Object.values(statusCounts);
             
-            // Destruir gráfico anterior se existir
-            if (appState.charts.ativosMerged) {
-                appState.charts.ativosMerged.destroy();
-            }
+            appState.charts.ativosMergedChart.data.labels = labels;
+            appState.charts.ativosMergedChart.data.datasets[0].data = data;
             
-            appState.charts.ativosMerged = new Chart(ctx, {
-                type: 'pie',
+            // Atualizar cores
+            appState.charts.ativosMergedChart.data.datasets[0].backgroundColor = labels.map(status => {
+                switch(status) {
+                    case 'Ativo': return 'rgba(40, 167, 69, 0.7)';
+                    case 'Inativo': return 'rgba(220, 53, 69, 0.7)';
+                    case 'Manutenção': return 'rgba(255, 193, 7, 0.7)';
+                    case 'Reserva': return 'rgba(108, 117, 125, 0.7)';
+                    default: return 'rgba(23, 162, 184, 0.7)';
+                }
+            });
+            
+            appState.charts.ativosMergedChart.update();
+        }
+
+        function initializeVacationRadarChart() {
+            const ctx = document.getElementById('vacationRadarChart');
+            if (!ctx) return;
+            
+            // Agrupar férias por status
+            const statusCounts = {
+                'Em Andamento': 0,
+                'Concluído': 0,
+                'Cancelado': 0,
+                'Solicitado': 0
+            };
+            
+            appState.vacations.forEach(vacation => {
+                if (statusCounts.hasOwnProperty(vacation.status)) {
+                    statusCounts[vacation.status]++;
+                }
+            });
+            
+            const labels = Object.keys(statusCounts);
+            const data = Object.values(statusCounts);
+            
+            appState.charts.vacationRadarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Solicitações de Férias',
+                        data: data,
+                        backgroundColor: 'rgba(76, 201, 240, 0.2)',
+                        borderColor: 'rgba(76, 201, 240, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(76, 201, 240, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Solicitações de Férias por Status'
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateVacationRadarChart() {
+            if (!appState.charts.vacationRadarChart) return;
+            
+            // Atualizar dados
+            const statusCounts = {
+                'Em Andamento': 0,
+                'Concluído': 0,
+                'Cancelado': 0,
+                'Solicitado': 0
+            };
+            
+            appState.vacations.forEach(vacation => {
+                if (statusCounts.hasOwnProperty(vacation.status)) {
+                    statusCounts[vacation.status]++;
+                }
+            });
+            
+            const data = Object.values(statusCounts);
+            
+            appState.charts.vacationRadarChart.data.datasets[0].data = data;
+            appState.charts.vacationRadarChart.update();
+        }
+
+        function initializeVacationMonthChart() {
+            const ctx = document.getElementById('vacationMonthChart');
+            if (!ctx) return;
+            
+            // Agrupar férias por mês
+            const monthCounts = {};
+            appState.vacations.forEach(vacation => {
+                if (vacation.start_date) {
+                    const month = new Date(vacation.start_date).getMonth();
+                    if (monthCounts[month]) {
+                        monthCounts[month]++;
+                    } else {
+                        monthCounts[month] = 1;
+                    }
+                }
+            });
+            
+            // Preencher meses faltantes
+            const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            const data = labels.map((_, index) => monthCounts[index] || 0);
+            
+            appState.charts.vacationMonthChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Férias por Mês',
+                        data: data,
+                        backgroundColor: 'rgba(246, 194, 62, 0.2)',
+                        borderColor: 'rgba(246, 194, 62, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Férias por Mês'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateVacationMonthChart() {
+            if (!appState.charts.vacationMonthChart) return;
+            
+            // Atualizar dados
+            const monthCounts = {};
+            appState.vacations.forEach(vacation => {
+                if (vacation.start_date) {
+                    const month = new Date(vacation.start_date).getMonth();
+                    if (monthCounts[month]) {
+                        monthCounts[month]++;
+                    } else {
+                        monthCounts[month] = 1;
+                    }
+                }
+            });
+            
+            const data = Array(12).fill(0).map((_, index) => monthCounts[index] || 0);
+            
+            appState.charts.vacationMonthChart.data.datasets[0].data = data;
+            appState.charts.vacationMonthChart.update();
+        }
+
+        function initializeProjectDoughnutChart() {
+            const ctx = document.getElementById('projectDoughnutChart');
+            if (!ctx) return;
+            
+            // Agrupar projetos por status
+            const statusCounts = {};
+            appState.projects.forEach(project => {
+                if (statusCounts[project.status]) {
+                    statusCounts[project.status]++;
+                } else {
+                    statusCounts[project.status] = 1;
+                }
+            });
+            
+            const labels = Object.keys(statusCounts);
+            const data = Object.values(statusCounts);
+            
+            // Cores baseadas no status
+            const backgroundColors = labels.map(status => {
+                switch(status) {
+                    case 'Concluído': return 'rgba(40, 167, 69, 0.7)';
+                    case 'Em Andamento': return 'rgba(23, 162, 184, 0.7)';
+                    case 'Planejamento': return 'rgba(255, 193, 7, 0.7)';
+                    case 'Pausado': return 'rgba(108, 117, 125, 0.7)';
+                    case 'Cancelado': return 'rgba(220, 53, 69, 0.7)';
+                    default: return 'rgba(111, 66, 193, 0.7)';
+                }
+            });
+            
+            appState.charts.projectDoughnutChart = new Chart(ctx, {
+                type: 'doughnut',
                 data: {
                     labels: labels,
                     datasets: [{
                         data: data,
-                        backgroundColor: [
-                            '#4361ee', '#3a0ca3', '#4cc9f0', '#f6c23e', '#e74a3b',
-                            '#1cc88a', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'
-                        ].slice(0, labels.length),
+                        backgroundColor: backgroundColors,
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
@@ -3994,22 +4986,48 @@
                     plugins: {
                         legend: {
                             position: 'right',
-                            labels: {
-                                padding: 15,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
                         },
                         title: {
                             display: true,
-                            text: 'Ativos por Tipo',
-                            font: {
-                                size: 14
-                            }
+                            text: 'Status dos Projetos'
                         }
                     }
                 }
             });
+        }
+
+        function updateProjectDoughnutChart() {
+            if (!appState.charts.projectDoughnutChart) return;
+            
+            // Atualizar dados
+            const statusCounts = {};
+            appState.projects.forEach(project => {
+                if (statusCounts[project.status]) {
+                    statusCounts[project.status]++;
+                } else {
+                    statusCounts[project.status] = 1;
+                }
+            });
+            
+            const labels = Object.keys(statusCounts);
+            const data = Object.values(statusCounts);
+            
+            appState.charts.projectDoughnutChart.data.labels = labels;
+            appState.charts.projectDoughnutChart.data.datasets[0].data = data;
+            
+            // Atualizar cores
+            appState.charts.projectDoughnutChart.data.datasets[0].backgroundColor = labels.map(status => {
+                switch(status) {
+                    case 'Concluído': return 'rgba(40, 167, 69, 0.7)';
+                    case 'Em Andamento': return 'rgba(23, 162, 184, 0.7)';
+                    case 'Planejamento': return 'rgba(255, 193, 7, 0.7)';
+                    case 'Pausado': return 'rgba(108, 117, 125, 0.7)';
+                    case 'Cancelado': return 'rgba(220, 53, 69, 0.7)';
+                    default: return 'rgba(111, 66, 193, 0.7)';
+                }
+            });
+            
+            appState.charts.projectDoughnutChart.update();
         }
 
         function updateProgressGauges() {
@@ -4034,1131 +5052,454 @@
             }
         }
 
-        // Inicialização de Event Listeners
-        function setupBasicEventListeners() {
-            // Botão de refresh do dashboard
-            const refreshBtn = document.getElementById('refreshDashboard');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', async () => {
-                    refreshBtn.innerHTML = '<span class="loading-spinner"></span> Atualizando...';
-                    await loadAllData();
-                    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar';
-                    showAlert('Dashboard atualizado com sucesso!', 'success');
-                });
+        // Utilitário para gerar cores
+        function generateColors(count) {
+            const baseColors = [
+                '#4361ee', '#3a0ca3', '#4cc9f0', '#f6c23e', '#e74a3b',
+                '#1cc88a', '#36b9cc', '#f8f9fc', '#5a5c69', '#6f42c1',
+                '#e83e8c', '#fd7e14', '#20c997', '#6610f2', '#6f42c1'
+            ];
+            
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                colors.push(baseColors[i % baseColors.length]);
             }
             
-            // Busca em tabelas
-            setupSearchFunctionality();
+            return colors;
         }
 
-        function setupEventListeners() {
-            // Funcionários
-            document.getElementById('saveEmployee')?.addEventListener('click', saveEmployee);
-            document.getElementById('importEmployeesCSV')?.addEventListener('click', triggerEmployeesCSVImport);
-            document.getElementById('csvEmployeesFileInput')?.addEventListener('change', handleEmployeesCSVImport);
-            
-            // Ramais
-            document.getElementById('saveExtension')?.addEventListener('click', saveExtension);
-            
-            // Ativos
-            document.getElementById('saveAsset')?.addEventListener('click', saveAsset);
-            document.getElementById('assetType')?.addEventListener('change', handleAssetTypeChange);
-            document.getElementById('assetEmployee')?.addEventListener('change', handleAssetEmployeeChange);
-            document.getElementById('importAssetsCSV')?.addEventListener('click', triggerAssetsCSVImport);
-            document.getElementById('csvFileInput')?.addEventListener('change', handleAssetsCSVImport);
-            document.getElementById('exportQRCodeBatch')?.addEventListener('click', exportQRCodeBatch);
-            
-            // Férias
-            document.getElementById('saveVacation')?.addEventListener('click', saveVacation);
-            
-            // Projetos
-            document.getElementById('saveProject')?.addEventListener('click', saveProject);
-            document.getElementById('projectProgress')?.addEventListener('input', updateProjectProgressValue);
-            
-            // Exportação
-            setupExportButtons();
-            
-            // QR Code
-            document.getElementById('downloadQRCodeBtn')?.addEventListener('click', downloadQRCode);
-        }
-
-        function setupSearchFunctionality() {
-            // Busca de funcionários
-            const searchEmployees = document.getElementById('searchEmployees');
-            if (searchEmployees) {
-                searchEmployees.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    filterTable('employeesTable', searchTerm, [1, 2, 3, 4]); // Colunas: Nome, Email, Cargo, Departamento
-                });
-            }
-            
-            // Busca de ramais
-            const searchExtensions = document.getElementById('searchExtensions');
-            if (searchExtensions) {
-                searchExtensions.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    filterTable('extensionsTable', searchTerm, [1, 2, 4, 5]); // Colunas: Ramal, Responsável, Departamento, Localização
-                });
-            }
-            
-            // Busca de ativos
-            const searchAssets = document.getElementById('searchAssets');
-            if (searchAssets) {
-                searchAssets.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    filterTable('assetsTable', searchTerm, [2, 3, 4, 5, 6, 7, 8]); // Colunas: Nome, Tipo, Modelo, Polegadas, Descrição, Número de Série, Responsável
-                });
-            }
-            
-            // Busca de férias
-            const searchVacations = document.getElementById('searchVacations');
-            if (searchVacations) {
-                searchVacations.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    filterTable('vacationsTable', searchTerm, [1]); // Colunas: Funcionário
-                });
-            }
-            
-            // Busca de projetos
-            const searchProjects = document.getElementById('searchProjects');
-            if (searchProjects) {
-                searchProjects.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    filterTable('projectsTable', searchTerm, [1, 2]); // Colunas: Nome, Responsável
-                });
-            }
-        }
-
-        function filterTable(tableId, searchTerm, columnIndexes) {
-            const table = document.getElementById(tableId);
-            if (!table) return;
-            
-            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-            
-            for (let row of rows) {
-                let found = false;
-                const cells = row.getElementsByTagName('td');
-                
-                for (let index of columnIndexes) {
-                    if (index < cells.length) {
-                        const cellText = cells[index].textContent.toLowerCase();
-                        if (cellText.includes(searchTerm)) {
-                            found = true;
-                            break;
-                        }
-                    }
+        // Exportação de dados
+        async function exportDashboard(format) {
+            try {
+                if (appState.isExporting) {
+                    showAlert('Exportação em andamento, aguarde...', 'warning');
+                    return;
                 }
                 
-                row.style.display = found ? '' : 'none';
-            }
-        }
-
-        function setupExportButtons() {
-            // Dashboard
-            document.getElementById('exportPDF')?.addEventListener('click', () => exportDashboard('pdf'));
-            document.getElementById('exportExcel')?.addEventListener('click', () => exportDashboard('excel'));
-            
-            // Funcionários
-            document.getElementById('exportEmployeesPDF')?.addEventListener('click', () => exportEmployees('pdf'));
-            document.getElementById('exportEmployeesExcel')?.addEventListener('click', () => exportEmployees('excel'));
-            document.getElementById('exportEmployeesListPDF')?.addEventListener('click', () => exportEmployeesList('pdf'));
-            document.getElementById('exportEmployeesListExcel')?.addEventListener('click', () => exportEmployeesList('excel'));
-            
-            // Ramais
-            document.getElementById('exportExtensionsPDF')?.addEventListener('click', () => exportExtensions('pdf'));
-            document.getElementById('exportExtensionsExcel')?.addEventListener('click', () => exportExtensions('excel'));
-            
-            // Ativos
-            document.getElementById('exportAssetsPDF')?.addEventListener('click', () => exportAssets('pdf'));
-            document.getElementById('exportAssetsExcel')?.addEventListener('click', () => exportAssets('excel'));
-            document.getElementById('exportAssetsListPDF')?.addEventListener('click', () => exportAssetsList('pdf'));
-            document.getElementById('exportAssetsListExcel')?.addEventListener('click', () => exportAssetsList('excel'));
-            
-            // Férias
-            document.getElementById('exportVacationsListPDF')?.addEventListener('click', () => exportVacationsList('pdf'));
-            document.getElementById('exportVacationsListExcel')?.addEventListener('click', () => exportVacationsList('excel'));
-            
-            // Projetos
-            document.getElementById('exportProjectsListPDF')?.addEventListener('click', () => exportProjectsList('pdf'));
-            document.getElementById('exportProjectsListExcel')?.addEventListener('click', () => exportProjectsList('excel'));
-        }
-
-        // Funções de Exportação
-        function exportDashboard(format) {
-            if (appState.isExporting) return;
-            appState.isExporting = true;
-            
-            try {
-                const stats = {
-                    totalEmployees: appState.employees.length,
-                    totalAssets: appState.assets.length,
-                    onVacation: appState.vacations.filter(v => v.status === 'Em Andamento').length,
-                    pendingTasks: appState.projects.filter(p => 
-                        p.status === 'Em Andamento' || p.priority === 'Alta' || p.priority === 'Urgente'
-                    ).length
-                };
+                appState.isExporting = true;
                 
                 if (format === 'pdf') {
-                    exportToPDF('dashboard', 'Relatório do Dashboard', stats);
-                } else {
-                    exportToExcel('dashboard', 'Relatório do Dashboard', stats);
+                    await exportDashboardToPDF();
+                } else if (format === 'excel') {
+                    await exportDashboardToExcel();
                 }
                 
-                showAlert(`Dashboard exportado em ${format.toUpperCase()} com sucesso!`, 'success');
+                appState.isExporting = false;
+                showAlert('Dashboard exportado com sucesso!', 'success');
             } catch (error) {
                 console.error('Erro ao exportar dashboard:', error);
-                showAlert('Erro ao exportar dashboard', 'error');
-            } finally {
                 appState.isExporting = false;
+                showAlert('Erro ao exportar dashboard: ' + error.message, 'error');
             }
         }
 
-        function exportEmployees(format) {
-            if (appState.isExporting) return;
-            appState.isExporting = true;
-            
-            try {
-                const data = {
-                    labels: Object.keys(departmentsCount(appState.employees)),
-                    values: Object.values(departmentsCount(appState.employees))
-                };
-                
-                if (format === 'pdf') {
-                    exportToPDF('employees_chart', 'Relatório de Funcionários por Departamento', data);
-                } else {
-                    exportToExcel('employees_chart', 'Relatório de Funcionários por Departamento', data);
-                }
-                
-                showAlert(`Relatório de funcionários exportado em ${format.toUpperCase()} com sucesso!`, 'success');
-            } catch (error) {
-                console.error('Erro ao exportar funcionários:', error);
-                showAlert('Erro ao exportar relatório de funcionários', 'error');
-            } finally {
-                appState.isExporting = false;
-            }
-        }
-
-        function exportEmployeesList(format) {
-            if (appState.isExporting) return;
-            appState.isExporting = true;
-            
-            try {
-                const headers = ['ID', 'Nome', 'Email', 'Cargo', 'Departamento', 'Status'];
-                const data = appState.employees.map(emp => [
-                    `EMP-${emp.id.toString().padStart(3, '0')}`,
-                    emp.name,
-                    emp.email,
-                    emp.position,
-                    emp.department,
-                    emp.status
-                ]);
-                
-                if (format === 'pdf') {
-                    exportTableToPDF('employees_table', 'Lista de Funcionários', headers, data);
-                } else {
-                    exportTableToExcel('employees_table', 'Lista de Funcionários', headers, data);
-                }
-                
-                showAlert(`Lista de funcionários exportada em ${format.toUpperCase()} com sucesso!`, 'success');
-            } catch (error) {
-                console.error('Erro ao exportar lista de funcionários:', error);
-                showAlert('Erro ao exportar lista de funcionários', 'error');
-            } finally {
-                appState.isExporting = false;
-            }
-        }
-
-        function exportExtensions(format) {
-            if (appState.isExporting) return;
-            appState.isExporting = true;
-            
-            try {
-                // Para extensões, exportamos a lista completa
-                const headers = ['ID', 'Ramal', 'Responsável', 'Departamento', 'Localização', 'Status'];
-                const data = appState.extensions.map(ext => {
-                    const employee = appState.employees.find(emp => emp.id === ext.employee_id);
-                    return [
-                        `EXT-${ext.id.toString().padStart(3, '0')}`,
-                        ext.number,
-                        employee ? employee.name : 'N/A',
-                        employee ? employee.department : 'N/A',
-                        ext.location || 'N/A',
-                        ext.status
-                    ];
-                });
-                
-                if (format === 'pdf') {
-                    exportTableToPDF('extensions_table', 'Lista de Ramais', headers, data);
-                } else {
-                    exportTableToExcel('extensions_table', 'Lista de Ramais', headers, data);
-                }
-                
-                showAlert(`Lista de ramais exportada em ${format.toUpperCase()} com sucesso!`, 'success');
-            } catch (error) {
-                console.error('Erro ao exportar lista de ramais:', error);
-                showAlert('Erro ao exportar lista de ramais', 'error');
-            } finally {
-                appState.isExporting = false;
-            }
-        }
-
-        function exportAssets(format) {
-            if (appState.isExporting) return;
-            appState.isExporting = true;
-            
-            try {
-                const data = {
-                    labels: Object.keys(statusCount(appState.assets)),
-                    values: Object.values(statusCount(appState.assets))
-                };
-                
-                if (format === 'pdf') {
-                    exportToPDF('assets_chart', 'Relatório de Status dos Ativos', data);
-                } else {
-                    exportToExcel('assets_chart', 'Relatório de Status dos Ativos', data);
-                }
-                
-                showAlert(`Relatório de ativos exportado em ${format.toUpperCase()} com sucesso!`, 'success');
-            } catch (error) {
-                console.error('Erro ao exportar ativos:', error);
-                showAlert('Erro ao exportar relatório de ativos', 'error');
-            } finally {
-                appState.isExporting = false;
-            }
-        }
-
-        function exportAssetsList(format) {
-            if (appState.isExporting) return;
-            appState.isExporting = true;
-            
-            try {
-                const headers = ['ID', 'Nome', 'Tipo', 'Modelo', 'Polegadas', 'Descrição', 'Número de Série', 'Responsável', 'Status'];
-                const data = appState.assets.map(asset => {
-                    const employee = appState.employees.find(emp => emp.id === asset.employee_id);
-                    return [
-                        `AST-${asset.id.toString().padStart(3, '0')}`,
-                        asset.name,
-                        asset.type,
-                        asset.model,
-                        asset.inches || 'N/A',
-                        asset.description || 'N/A',
-                        asset.serial_number || 'N/A',
-                        employee ? employee.name : 'N/A',
-                        asset.status
-                    ];
-                });
-                
-                if (format === 'pdf') {
-                    exportTableToPDF('assets_table', 'Lista de Ativos', headers, data);
-                } else {
-                    exportTableToExcel('assets_table', 'Lista de Ativos', headers, data);
-                }
-                
-                showAlert(`Lista de ativos exportada em ${format.toUpperCase()} com sucesso!`, 'success');
-            } catch (error) {
-                console.error('Erro ao exportar lista de ativos:', error);
-                showAlert('Erro ao exportar lista de ativos', 'error');
-            } finally {
-                appState.isExporting = false;
-            }
-        }
-
-        function exportVacationsList(format) {
-            if (appState.isExporting) return;
-            appState.isExporting = true;
-            
-            try {
-                const headers = ['ID', 'Funcionário', 'Início', 'Término', 'Dias', 'Status'];
-                const data = appState.vacations.map(vacation => {
-                    const employee = appState.employees.find(emp => emp.id === vacation.employee_id);
-                    const days = calculateVacationDays(vacation.start_date, vacation.end_date);
-                    
-                    return [
-                        `VAC-${vacation.id.toString().padStart(3, '0')}`,
-                        employee ? employee.name : 'N/A',
-                        formatDate(vacation.start_date),
-                        formatDate(vacation.end_date),
-                        days,
-                        vacation.status
-                    ];
-                });
-                
-                if (format === 'pdf') {
-                    exportTableToPDF('vacations_table', 'Lista de Férias', headers, data);
-                } else {
-                    exportTableToExcel('vacations_table', 'Lista de Férias', headers, data);
-                }
-                
-                showAlert(`Lista de férias exportada em ${format.toUpperCase()} com sucesso!`, 'success');
-            } catch (error) {
-                console.error('Erro ao exportar lista de férias:', error);
-                showAlert('Erro ao exportar lista de férias', 'error');
-            } finally {
-                appState.isExporting = false;
-            }
-        }
-
-        function exportProjectsList(format) {
-            if (appState.isExporting) return;
-            appState.isExporting = true;
-            
-            try {
-                const headers = ['ID', 'Nome', 'Responsável', 'Prioridade', 'Progresso', 'Status'];
-                const data = appState.projects.map(project => [
-                    `PRJ-${project.id.toString().padStart(3, '0')}`,
-                    project.name,
-                    project.manager_id,
-                    project.priority,
-                    `${project.progress || 0}%`,
-                    project.status
-                ]);
-                
-                if (format === 'pdf') {
-                    exportTableToPDF('projects_table', 'Lista de Projetos', headers, data);
-                } else {
-                    exportTableToExcel('projects_table', 'Lista de Projetos', headers, data);
-                }
-                
-                showAlert(`Lista de projetos exportada em ${format.toUpperCase()} com sucesso!`, 'success');
-            } catch (error) {
-                console.error('Erro ao exportar lista de projetos:', error);
-                showAlert('Erro ao exportar lista de projetos', 'error');
-            } finally {
-                appState.isExporting = false;
-            }
-        }
-
-        // Funções auxiliares para exportação
-        function departmentsCount(employees) {
-            const departments = {};
-            employees.forEach(emp => {
-                departments[emp.department] = (departments[emp.department] || 0) + 1;
-            });
-            return departments;
-        }
-
-        function statusCount(items) {
-            const statuses = {};
-            items.forEach(item => {
-                statuses[item.status] = (statuses[item.status] || 0) + 1;
-            });
-            return statuses;
-        }
-
-        function exportToPDF(type, title, data) {
-            // Implementação básica de exportação para PDF
+        async function exportDashboardToPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
             // Título
-            doc.setFontSize(16);
-            doc.text(title, 20, 20);
+            doc.setFontSize(20);
+            doc.text('Dashboard - Sistema de Gestão', 20, 20);
             
-            // Data de geração
+            // Data de exportação
             doc.setFontSize(10);
-            doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 20, 30);
+            doc.text(`Exportado em: ${new Date().toLocaleString('pt-BR')}`, 20, 30);
             
-            // Conteúdo específico por tipo
-            if (type === 'dashboard') {
-                doc.setFontSize(12);
-                doc.text(`Total de Funcionários: ${data.totalEmployees}`, 20, 50);
-                doc.text(`Total de Ativos: ${data.totalAssets}`, 20, 60);
-                doc.text(`Funcionários de Férias: ${data.onVacation}`, 20, 70);
-                doc.text(`Tarefas Pendentes: ${data.pendingTasks}`, 20, 80);
-            } else if (type.includes('chart')) {
-                // Para gráficos, adicionar os dados em formato de lista
-                let yPosition = 50;
-                doc.setFontSize(12);
-                
-                if (data.labels && data.values) {
-                    data.labels.forEach((label, index) => {
-                        doc.text(`${label}: ${data.values[index]}`, 20, yPosition);
-                        yPosition += 10;
-                    });
-                }
-            }
+            // Estatísticas
+            doc.setFontSize(16);
+            doc.text('Estatísticas Gerais', 20, 50);
+            
+            doc.setFontSize(12);
+            let yPosition = 65;
+            
+            const stats = [
+                `Total de Funcionários: ${appState.employees.length}`,
+                `Total de Ativos: ${appState.assets.length}`,
+                `Funcionários de Férias: ${appState.vacations.filter(v => v.status === 'Em Andamento').length}`,
+                `Projetos Ativos: ${appState.projects.filter(p => p.status === 'Em Andamento').length}`,
+                `Tarefas Pendentes: ${appState.projects.filter(p => p.status === 'Planejamento').length + appState.vacations.filter(v => v.status === 'Solicitado').length}`
+            ];
+            
+            stats.forEach(stat => {
+                doc.text(stat, 20, yPosition);
+                yPosition += 8;
+            });
+            
+            // Adicionar gráficos (simplificado)
+            yPosition += 10;
+            doc.setFontSize(16);
+            doc.text('Visão Geral dos Dados', 20, yPosition);
             
             // Salvar o PDF
-            doc.save(`${title.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`);
+            doc.save('dashboard_sistema_gestao.pdf');
         }
 
-        function exportToExcel(type, title, data) {
+        async function exportDashboardToExcel() {
             // Criar workbook
             const wb = XLSX.utils.book_new();
             
-            // Dados para a planilha
-            let wsData = [];
+            // Dados do dashboard
+            const dashboardData = [
+                ['Métrica', 'Valor'],
+                ['Total de Funcionários', appState.employees.length],
+                ['Total de Ativos', appState.assets.length],
+                ['Funcionários de Férias', appState.vacations.filter(v => v.status === 'Em Andamento').length],
+                ['Projetos Ativos', appState.projects.filter(p => p.status === 'Em Andamento').length],
+                ['Tarefas Pendentes', appState.projects.filter(p => p.status === 'Planejamento').length + appState.vacations.filter(v => v.status === 'Solicitado').length]
+            ];
             
-            if (type === 'dashboard') {
-                wsData = [
-                    ['Métrica', 'Valor'],
-                    ['Total de Funcionários', data.totalEmployees],
-                    ['Total de Ativos', data.totalAssets],
-                    ['Funcionários de Férias', data.onVacation],
-                    ['Tarefas Pendentes', data.pendingTasks]
-                ];
-            } else if (type.includes('chart')) {
-                wsData = [['Categoria', 'Quantidade']];
-                if (data.labels && data.values) {
-                    data.labels.forEach((label, index) => {
-                        wsData.push([label, data.values[index]]);
-                    });
-                }
-            }
-            
-            // Criar worksheet
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            
-            // Adicionar worksheet ao workbook
-            XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
+            // Adicionar worksheet
+            const ws = XLSX.utils.aoa_to_sheet(dashboardData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Dashboard');
             
             // Salvar arquivo
-            XLSX.writeFile(wb, `${title.replace(/\s+/g, '_')}_${new Date().getTime()}.xlsx`);
+            XLSX.writeFile(wb, 'dashboard_sistema_gestao.xlsx');
         }
 
-        function exportTableToPDF(tableId, title, headers, data) {
+        // Exportações específicas por seção
+        async function exportEmployees(format) {
+            if (format === 'pdf') {
+                await exportTableToPDF('employeesTable', 'lista_funcionarios.pdf');
+            } else if (format === 'excel') {
+                await exportTableToExcel(appState.employees, 'employees', 'lista_funcionarios.xlsx');
+            }
+        }
+
+        async function exportExtensions(format) {
+            if (format === 'pdf') {
+                await exportTableToPDF('extensionsTable', 'lista_ramais.pdf');
+            } else if (format === 'excel') {
+                await exportTableToExcel(appState.extensions, 'extensions', 'lista_ramais.xlsx');
+            }
+        }
+
+        async function exportAssets(format) {
+            if (format === 'pdf') {
+                await exportTableToPDF('assetsTable', 'lista_ativos.pdf');
+            } else if (format === 'excel') {
+                await exportTableToExcel(appState.assets, 'assets', 'lista_ativos.xlsx');
+            }
+        }
+
+        async function exportVacations(format) {
+            if (format === 'pdf') {
+                await exportTableToPDF('vacationsTable', 'lista_ferias.pdf');
+            } else if (format === 'excel') {
+                await exportTableToExcel(appState.vacations, 'vacations', 'lista_ferias.xlsx');
+            }
+        }
+
+        async function exportProjects(format) {
+            if (format === 'pdf') {
+                await exportTableToPDF('projectsTable', 'lista_projetos.pdf');
+            } else if (format === 'excel') {
+                await exportTableToExcel(appState.projects, 'projects', 'lista_projetos.xlsx');
+            }
+        }
+
+        // Funções genéricas de exportação
+        async function exportTableToPDF(tableId, filename) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
             // Título
             doc.setFontSize(16);
-            doc.text(title, 20, 20);
+            doc.text(filename.replace('.pdf', '').replace(/_/g, ' ').toUpperCase(), 20, 20);
             
-            // Data de geração
+            // Data
             doc.setFontSize(10);
-            doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 20, 30);
+            doc.text(`Exportado em: ${new Date().toLocaleString('pt-BR')}`, 20, 30);
             
-            // Adicionar tabela
-            doc.autoTable({
-                head: [headers],
-                body: data,
-                startY: 40,
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [67, 97, 238] }
-            });
+            // Capturar a tabela com html2canvas
+            const tableElement = document.getElementById(tableId);
+            if (tableElement) {
+                const canvas = await html2canvas(tableElement);
+                const imgData = canvas.toDataURL('image/png');
+                
+                // Adicionar a imagem ao PDF
+                const imgWidth = 180;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                doc.addImage(imgData, 'PNG', 15, 40, imgWidth, imgHeight);
+            }
             
             // Salvar o PDF
-            doc.save(`${title.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`);
+            doc.save(filename);
         }
 
-        function exportTableToExcel(tableId, title, headers, data) {
-            const wb = XLSX.utils.book_new();
-            const wsData = [headers, ...data];
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            
-            XLSX.utils.book_append_sheet(wb, ws, 'Dados');
-            XLSX.writeFile(wb, `${title.replace(/\s+/g, '_')}_${new Date().getTime()}.xlsx`);
-        }
-
-        // Inicialização de Modals
-        function initializeModals() {
-            // Limpar formulários quando modais são fechados
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                modal.addEventListener('hidden.bs.modal', function() {
-                    const form = this.querySelector('form');
-                    if (form) {
-                        form.reset();
-                        appState.currentEditingId = null;
-                    }
-                    
-                    // Resetar campos condicionais de ativos
-                    resetAssetConditionalFields();
-                });
-            });
-            
-            // Modal específico de QR Code
-            const qrModal = document.getElementById('viewQRCodeModal');
-            if (qrModal) {
-                qrModal.addEventListener('hidden.bs.modal', function() {
-                    appState.currentQRCode = null;
-                    const preview = document.getElementById('qrCodePreview');
-                    if (preview) preview.innerHTML = '';
-                    
-                    const info = document.getElementById('qrAssetInfo');
-                    if (info) info.innerHTML = '';
-                });
-            }
-        }
-
-        // Funcionalidades de Funcionários
-        async function saveEmployee() {
-            const form = document.getElementById('employeeForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
+        async function exportTableToExcel(data, sheetName, filename) {
+            if (!data || data.length === 0) {
+                showAlert('Nenhum dado para exportar', 'warning');
                 return;
             }
             
-            const employeeData = {
-                name: formatName(document.getElementById('employeeName').value),
-                email: document.getElementById('employeeEmail').value.toLowerCase(),
-                position: document.getElementById('employeePosition').value,
-                department: document.getElementById('employeeDepartment').value,
-                status: document.getElementById('employeeStatus').value
+            // Criar workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Converter dados para worksheet
+            const ws = XLSX.utils.json_to_sheet(data);
+            
+            // Adicionar worksheet ao workbook
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            
+            // Salvar arquivo
+            XLSX.writeFile(wb, filename);
+        }
+
+        async function exportChart(chartId, format) {
+            const chart = appState.charts[chartId];
+            if (!chart) {
+                showAlert('Gráfico não encontrado', 'error');
+                return;
+            }
+            
+            const canvas = document.getElementById(chartId);
+            if (!canvas) return;
+            
+            if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Título
+                doc.setFontSize(16);
+                doc.text(`Gráfico - ${chart.options.plugins.title.text}`, 20, 20);
+                
+                // Data
+                doc.setFontSize(10);
+                doc.text(`Exportado em: ${new Date().toLocaleString('pt-BR')}`, 20, 30);
+                
+                // Adicionar gráfico
+                const imgData = canvas.toDataURL('image/png');
+                doc.addImage(imgData, 'PNG', 20, 40, 170, 150);
+                
+                doc.save(`grafico_${chartId}.pdf`);
+                
+            } else if (format === 'excel') {
+                // Para Excel, exportar os dados do gráfico
+                const data = chart.data.labels.map((label, index) => ({
+                    Categoria: label,
+                    Valor: chart.data.datasets[0].data[index]
+                }));
+                
+                await exportTableToExcel(data, chartId, `dados_${chartId}.xlsx`);
+            }
+            
+            showAlert('Gráfico exportado com sucesso!', 'success');
+        }
+
+        // Importação de CSV
+        function handleEmployeesCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csvData = e.target.result;
+                    const employees = parseEmployeesCSV(csvData);
+                    
+                    if (employees.length > 0) {
+                        importEmployees(employees);
+                    } else {
+                        showAlert('Nenhum dado válido encontrado no arquivo CSV', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Erro ao processar CSV:', error);
+                    showAlert('Erro ao processar arquivo CSV: ' + error.message, 'error');
+                }
             };
             
-            try {
-                let result;
+            reader.readAsText(file);
+            event.target.value = ''; // Resetar input
+        }
+
+        function handleAssetsCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csvData = e.target.result;
+                    const assets = parseAssetsCSV(csvData);
+                    
+                    if (assets.length > 0) {
+                        importAssets(assets);
+                    } else {
+                        showAlert('Nenhum dado válido encontrado no arquivo CSV', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Erro ao processar CSV:', error);
+                    showAlert('Erro ao processar arquivo CSV: ' + error.message, 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = ''; // Resetar input
+        }
+
+        function parseEmployeesCSV(csvData) {
+            const lines = csvData.split('\n');
+            const employees = [];
+            
+            // Verificar cabeçalho (assumindo que a primeira linha é cabeçalho)
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            
+            // Mapear colunas esperadas
+            const expectedColumns = ['nome', 'email', 'cargo', 'departamento', 'status'];
+            
+            // Verificar se todas as colunas esperadas estão presentes
+            const missingColumns = expectedColumns.filter(col => !headers.includes(col));
+            if (missingColumns.length > 0) {
+                throw new Error(`Colunas obrigatórias faltando: ${missingColumns.join(', ')}`);
+            }
+            
+            // Processar linhas de dados
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
                 
-                if (appState.currentEditingId) {
-                    // Edição
-                    result = await supabase
-                        .from('employees')
-                        .update(employeeData)
-                        .eq('id', appState.currentEditingId);
-                } else {
-                    // Inserção
-                    result = await supabase
-                        .from('employees')
-                        .insert([employeeData]);
+                const values = line.split(',').map(v => v.trim());
+                
+                // Criar objeto funcionário
+                const employee = {
+                    name: formatName(values[headers.indexOf('nome')]),
+                    email: values[headers.indexOf('email')].toLowerCase(),
+                    position: values[headers.indexOf('cargo')],
+                    department: values[headers.indexOf('departamento')],
+                    status: values[headers.indexOf('status')] || 'Ativo',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                
+                // Validar dados obrigatórios
+                if (!employee.name || !employee.email || !employee.position || !employee.department) {
+                    console.warn(`Linha ${i + 1} ignorada: dados obrigatórios faltando`);
+                    continue;
                 }
                 
-                if (result.error) throw result.error;
-                
-                // Fechar modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
-                modal.hide();
-                
-                // Recarregar dados
-                await loadAllData();
-                
-                showAlert(
-                    appState.currentEditingId 
-                        ? 'Funcionário atualizado com sucesso!' 
-                        : 'Funcionário adicionado com sucesso!', 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Erro ao salvar funcionário:', error);
-                showAlert('Erro ao salvar funcionário', 'error');
+                employees.push(employee);
             }
+            
+            return employees;
         }
 
-        function editEmployee(id) {
-            const employee = appState.employees.find(emp => emp.id === id);
-            if (!employee) return;
+        function parseAssetsCSV(csvData) {
+            const lines = csvData.split('\n');
+            const assets = [];
             
-            appState.currentEditingId = id;
+            // Verificar cabeçalho
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
             
-            // Preencher formulário
-            document.getElementById('employeeName').value = employee.name;
-            document.getElementById('employeeEmail').value = employee.email;
-            document.getElementById('employeePosition').value = employee.position;
-            document.getElementById('employeeDepartment').value = employee.department;
-            document.getElementById('employeeStatus').value = employee.status;
+            // Colunas esperadas
+            const expectedColumns = ['nome', 'tipo', 'modelo'];
+            const missingColumns = expectedColumns.filter(col => !headers.includes(col));
             
-            // Abrir modal
-            const modal = new bootstrap.Modal(document.getElementById('addEmployeeModal'));
-            modal.show();
+            if (missingColumns.length > 0) {
+                throw new Error(`Colunas obrigatórias faltando: ${missingColumns.join(', ')}`);
+            }
+            
+            // Processar linhas
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const values = line.split(',').map(v => v.trim());
+                
+                const asset = {
+                    name: values[headers.indexOf('nome')],
+                    type: values[headers.indexOf('tipo')],
+                    model: values[headers.indexOf('modelo')],
+                    inches: headers.includes('polegadas') ? values[headers.indexOf('polegadas')] : null,
+                    description: headers.includes('descricao') ? values[headers.indexOf('descricao')] : null,
+                    serial_number: headers.includes('numero_serie') ? values[headers.indexOf('numero_serie')] : null,
+                    status: headers.includes('status') ? values[headers.indexOf('status')] : 'Ativo',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                
+                // Validar dados obrigatórios
+                if (!asset.name || !asset.type || !asset.model) {
+                    console.warn(`Linha ${i + 1} ignorada: dados obrigatórios faltando`);
+                    continue;
+                }
+                
+                assets.push(asset);
+            }
+            
+            return assets;
         }
 
-        async function deleteEmployee(id) {
-            if (!confirm('Tem certeza que deseja excluir este funcionário?')) return;
+        async function importEmployees(employees) {
+            if (!employees.length) return;
             
             try {
                 const { error } = await supabase
                     .from('employees')
-                    .delete()
-                    .eq('id', id);
+                    .insert(employees);
                 
                 if (error) throw error;
                 
                 await loadAllData();
-                showAlert('Funcionário excluído com sucesso!', 'success');
+                showAlert(`${employees.length} funcionários importados com sucesso!`, 'success');
             } catch (error) {
-                console.error('Erro ao excluir funcionário:', error);
-                showAlert('Erro ao excluir funcionário', 'error');
+                console.error('Erro ao importar funcionários:', error);
+                showAlert('Erro ao importar funcionários: ' + error.message, 'error');
             }
         }
 
-        // Funcionalidades de Ramais
-        async function saveExtension() {
-            const form = document.getElementById('extensionForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            
-            const extensionData = {
-                number: document.getElementById('extensionNumber').value,
-                employee_id: document.getElementById('extensionEmployee').value,
-                shared_employees: document.getElementById('extensionShared').value || null,
-                location: document.getElementById('extensionLocation').value,
-                status: document.getElementById('extensionStatus').value
-            };
-            
-            try {
-                let result;
-                
-                if (appState.currentEditingId) {
-                    result = await supabase
-                        .from('extensions')
-                        .update(extensionData)
-                        .eq('id', appState.currentEditingId);
-                } else {
-                    result = await supabase
-                        .from('extensions')
-                        .insert([extensionData]);
-                }
-                
-                if (result.error) throw result.error;
-                
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addExtensionModal'));
-                modal.hide();
-                
-                await loadAllData();
-                
-                showAlert(
-                    appState.currentEditingId 
-                        ? 'Ramal atualizado com sucesso!' 
-                        : 'Ramal adicionado com sucesso!', 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Erro ao salvar ramal:', error);
-                showAlert('Erro ao salvar ramal', 'error');
-            }
-        }
-
-        function editExtension(id) {
-            const extension = appState.extensions.find(ext => ext.id === id);
-            if (!extension) return;
-            
-            appState.currentEditingId = id;
-            
-            document.getElementById('extensionNumber').value = extension.number;
-            document.getElementById('extensionEmployee').value = extension.employee_id;
-            document.getElementById('extensionShared').value = extension.shared_employees || '';
-            document.getElementById('extensionLocation').value = extension.location || '';
-            document.getElementById('extensionStatus').value = extension.status;
-            
-            const modal = new bootstrap.Modal(document.getElementById('addExtensionModal'));
-            modal.show();
-        }
-
-        async function deleteExtension(id) {
-            if (!confirm('Tem certeza que deseja excluir este ramal?')) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('extensions')
-                    .delete()
-                    .eq('id', id);
-                
-                if (error) throw error;
-                
-                await loadAllData();
-                showAlert('Ramal excluído com sucesso!', 'success');
-            } catch (error) {
-                console.error('Erro ao excluir ramal:', error);
-                showAlert('Erro ao excluir ramal', 'error');
-            }
-        }
-
-        // Funcionalidades de Ativos
-        function handleAssetTypeChange() {
-            const type = document.getElementById('assetType').value;
-            resetAssetConditionalFields();
-            
-            // Mostrar/ocultar campos baseados no tipo
-            if (type === 'Notebook' || type === 'Desktop') {
-                document.getElementById('computerSpecsField').style.display = 'block';
-            }
-            
-            if (type === 'Monitor') {
-                document.getElementById('monitorSpecsField').style.display = 'block';
-                document.getElementById('assetInchesField').classList.remove('conditional-field');
-            }
-            
-            if (type === 'Notebook' || type === 'Desktop' || type === 'Monitor') {
-                document.getElementById('assetInchesField').classList.remove('conditional-field');
-            }
-        }
-
-        function handleAssetEmployeeChange() {
-            const employeeId = document.getElementById('assetEmployee').value;
-            const employee = appState.employees.find(emp => emp.id == employeeId);
-            
-            if (employee) {
-                document.getElementById('assetDepartment').value = employee.department;
-            } else {
-                document.getElementById('assetDepartment').value = '';
-            }
-        }
-
-        function resetAssetConditionalFields() {
-            // Ocultar todos os campos condicionais
-            const conditionalFields = document.querySelectorAll('.asset-specs-field, .conditional-field');
-            conditionalFields.forEach(field => {
-                field.style.display = 'none';
-            });
-            
-            // Resetar campo de departamento
-            document.getElementById('assetDepartment').value = '';
-        }
-
-        async function saveAsset() {
-            const form = document.getElementById('assetForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            
-            const assetData = {
-                name: document.getElementById('assetName').value,
-                type: document.getElementById('assetType').value,
-                model: document.getElementById('assetModel').value,
-                inches: document.getElementById('assetInches').value || null,
-                description: document.getElementById('assetDescription').value,
-                serial_number: document.getElementById('assetSerial').value,
-                employee_id: document.getElementById('assetEmployee').value || null,
-                status: document.getElementById('assetStatus').value,
-                acquisition_date: document.getElementById('assetAcquisition').value || null
-            };
-            
-            // Adicionar campos específicos baseados no tipo
-            if (assetData.type === 'Notebook' || assetData.type === 'Desktop') {
-                assetData.processor = document.getElementById('assetProcessor').value;
-                assetData.memory = document.getElementById('assetMemory').value;
-                assetData.storage = document.getElementById('assetStorage').value;
-                assetData.operating_system = document.getElementById('assetOS').value;
-            }
-            
-            if (assetData.type === 'Monitor') {
-                assetData.monitor_quality = document.getElementById('assetMonitorQuality').value;
-            }
-            
-            try {
-                let result;
-                
-                if (appState.currentEditingId) {
-                    result = await supabase
-                        .from('assets')
-                        .update(assetData)
-                        .eq('id', appState.currentEditingId);
-                } else {
-                    result = await supabase
-                        .from('assets')
-                        .insert([assetData]);
-                }
-                
-                if (result.error) throw result.error;
-                
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addAssetModal'));
-                modal.hide();
-                
-                await loadAllData();
-                
-                showAlert(
-                    appState.currentEditingId 
-                        ? 'Ativo atualizado com sucesso!' 
-                        : 'Ativo adicionado com sucesso!', 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Erro ao salvar ativo:', error);
-                showAlert('Erro ao salvar ativo', 'error');
-            }
-        }
-
-        function editAsset(id) {
-            const asset = appState.assets.find(ast => ast.id === id);
-            if (!asset) return;
-            
-            appState.currentEditingId = id;
-            
-            // Preencher campos básicos
-            document.getElementById('assetName').value = asset.name;
-            document.getElementById('assetType').value = asset.type;
-            document.getElementById('assetModel').value = asset.model;
-            document.getElementById('assetInches').value = asset.inches || '';
-            document.getElementById('assetDescription').value = asset.description || '';
-            document.getElementById('assetSerial').value = asset.serial_number || '';
-            document.getElementById('assetEmployee').value = asset.employee_id || '';
-            document.getElementById('assetStatus').value = asset.status;
-            document.getElementById('assetAcquisition').value = asset.acquisition_date || '';
-            
-            // Preencher campos condicionais baseados no tipo
-            handleAssetTypeChange(); // Isso mostrará os campos relevantes
-            
-            if (asset.type === 'Notebook' || asset.type === 'Desktop') {
-                document.getElementById('assetProcessor').value = asset.processor || '';
-                document.getElementById('assetMemory').value = asset.memory || '';
-                document.getElementById('assetStorage').value = asset.storage || '';
-                document.getElementById('assetOS').value = asset.operating_system || '';
-            }
-            
-            if (asset.type === 'Monitor') {
-                document.getElementById('assetMonitorQuality').value = asset.monitor_quality || '';
-            }
-            
-            // Preencher departamento se houver funcionário atribuído
-            if (asset.employee_id) {
-                const employee = appState.employees.find(emp => emp.id === asset.employee_id);
-                if (employee) {
-                    document.getElementById('assetDepartment').value = employee.department;
-                }
-            }
-            
-            const modal = new bootstrap.Modal(document.getElementById('addAssetModal'));
-            modal.show();
-        }
-
-        async function deleteAsset(id) {
-            if (!confirm('Tem certeza que deseja excluir este ativo?')) return;
+        async function importAssets(assets) {
+            if (!assets.length) return;
             
             try {
                 const { error } = await supabase
                     .from('assets')
-                    .delete()
-                    .eq('id', id);
+                    .insert(assets);
                 
                 if (error) throw error;
                 
                 await loadAllData();
-                showAlert('Ativo excluído com sucesso!', 'success');
+                showAlert(`${assets.length} ativos importados com sucesso!`, 'success');
             } catch (error) {
-                console.error('Erro ao excluir ativo:', error);
-                showAlert('Erro ao excluir ativo', 'error');
+                console.error('Erro ao importar ativos:', error);
+                showAlert('Erro ao importar ativos: ' + error.message, 'error');
             }
         }
 
-        // Funcionalidades de Férias
-        async function saveVacation() {
-            const form = document.getElementById('vacationForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            
-            const vacationData = {
-                employee_id: document.getElementById('vacationEmployee').value,
-                start_date: document.getElementById('vacationStart').value,
-                end_date: document.getElementById('vacationEnd').value,
-                status: document.getElementById('vacationStatus').value
-            };
-            
-            try {
-                let result;
-                
-                if (appState.currentEditingId) {
-                    result = await supabase
-                        .from('vacations')
-                        .update(vacationData)
-                        .eq('id', appState.currentEditingId);
-                } else {
-                    result = await supabase
-                        .from('vacations')
-                        .insert([vacationData]);
-                }
-                
-                if (result.error) throw result.error;
-                
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addVacationModal'));
-                modal.hide();
-                
-                await loadAllData();
-                
-                showAlert(
-                    appState.currentEditingId 
-                        ? 'Férias atualizadas com sucesso!' 
-                        : 'Férias solicitadas com sucesso!', 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Erro ao salvar férias:', error);
-                showAlert('Erro ao salvar férias', 'error');
-            }
-        }
-
-        function editVacation(id) {
-            const vacation = appState.vacations.find(vac => vac.id === id);
-            if (!vacation) return;
-            
-            appState.currentEditingId = id;
-            
-            document.getElementById('vacationEmployee').value = vacation.employee_id;
-            document.getElementById('vacationStart').value = vacation.start_date;
-            document.getElementById('vacationEnd').value = vacation.end_date;
-            document.getElementById('vacationStatus').value = vacation.status;
-            
-            const modal = new bootstrap.Modal(document.getElementById('addVacationModal'));
-            modal.show();
-        }
-
-        async function deleteVacation(id) {
-            if (!confirm('Tem certeza que deseja excluir esta solicitação de férias?')) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('vacations')
-                    .delete()
-                    .eq('id', id);
-                
-                if (error) throw error;
-                
-                await loadAllData();
-                showAlert('Solicitação de férias excluída com sucesso!', 'success');
-            } catch (error) {
-                console.error('Erro ao excluir férias:', error);
-                showAlert('Erro ao excluir férias', 'error');
-            }
-        }
-
-        // Funcionalidades de Projetos
-        function updateProjectProgressValue() {
-            const progress = document.getElementById('projectProgress').value;
-            document.getElementById('projectProgressValue').textContent = progress + '%';
-        }
-
-        async function saveProject() {
-            const form = document.getElementById('projectForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            
-            const projectData = {
-                name: document.getElementById('projectName').value,
-                description: document.getElementById('projectDescription').value,
-                manager_id: document.getElementById('projectResponsible').value,
-                start_date: document.getElementById('projectStart').value,
-                deadline: document.getElementById('projectDeadline').value,
-                priority: document.getElementById('projectPriority').value,
-                progress: parseInt(document.getElementById('projectProgress').value),
-                status: document.getElementById('projectStatus').value
-            };
-            
-            try {
-                let result;
-                
-                if (appState.currentEditingId) {
-                    result = await supabase
-                        .from('projects')
-                        .update(projectData)
-                        .eq('id', appState.currentEditingId);
-                } else {
-                    result = await supabase
-                        .from('projects')
-                        .insert([projectData]);
-                }
-                
-                if (result.error) throw result.error;
-                
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addProjectModal'));
-                modal.hide();
-                
-                await loadAllData();
-                
-                showAlert(
-                    appState.currentEditingId 
-                        ? 'Projeto atualizado com sucesso!' 
-                        : 'Projeto adicionado com sucesso!', 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Erro ao salvar projeto:', error);
-                showAlert('Erro ao salvar projeto', 'error');
-            }
-        }
-
-        function editProject(id) {
-            const project = appState.projects.find(proj => proj.id === id);
-            if (!project) return;
-            
-            appState.currentEditingId = id;
-            
-            document.getElementById('projectName').value = project.name;
-            document.getElementById('projectDescription').value = project.description || '';
-            document.getElementById('projectResponsible').value = project.manager_id;
-            document.getElementById('projectStart').value = project.start_date;
-            document.getElementById('projectDeadline').value = project.deadline;
-            document.getElementById('projectPriority').value = project.priority;
-            document.getElementById('projectProgress').value = project.progress || 0;
-            document.getElementById('projectStatus').value = project.status;
-            
-            updateProjectProgressValue();
-            
-            const modal = new bootstrap.Modal(document.getElementById('addProjectModal'));
-            modal.show();
-        }
-
-        async function deleteProject(id) {
-            if (!confirm('Tem certeza que deseja excluir este projeto?')) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('projects')
-                    .delete()
-                    .eq('id', id);
-                
-                if (error) throw error;
-                
-                await loadAllData();
-                showAlert('Projeto excluído com sucesso!', 'success');
-            } catch (error) {
-                console.error('Erro ao excluir projeto:', error);
-                showAlert('Erro ao excluir projeto', 'error');
-            }
-        }
-
-        // Funcionalidades de QR Code
+        // Sistema de QR Code
         async function viewQRCode(assetId) {
-            const asset = appState.assets.find(ast => ast.id === assetId);
-            if (!asset) return;
-            
-            appState.currentQRCode = asset;
+            const asset = appState.assets.find(a => a.id === assetId);
+            if (!asset) {
+                showAlert('Ativo não encontrado', 'error');
+                return;
+            }
             
             try {
-                // Gerar QR Code
-                const qrCodeData = await generateQRCode(asset);
-                
-                // Atualizar modal
-                const preview = document.getElementById('qrCodePreview');
-                const info = document.getElementById('qrAssetInfo');
-                
-                if (preview && info) {
-                    preview.innerHTML = `
-                        <img src="${qrCodeData}" alt="QR Code do Ativo" class="img-fluid">
-                    `;
-                    
-                    const employee = appState.employees.find(emp => emp.id === asset.employee_id);
-                    
-                    info.innerHTML = `
-                        <p><strong>Nome:</strong> ${asset.name}</p>
-                        <p><strong>Tipo:</strong> ${asset.type}</p>
-                        <p><strong>Modelo:</strong> ${asset.model}</p>
-                        ${asset.serial_number ? `<p><strong>Nº Série:</strong> ${asset.serial_number}</p>` : ''}
-                        ${employee ? `<p><strong>Responsável:</strong> ${employee.name}</p>` : ''}
-                        <p><strong>Status:</strong> ${asset.status}</p>
-                    `;
+                // Verificar se já temos o QR Code em cache
+                if (appState.qrCodeCache.has(assetId)) {
+                    displayQRCode(asset, appState.qrCodeCache.get(assetId));
+                    return;
                 }
                 
-                // Mostrar modal
-                const modal = new bootstrap.Modal(document.getElementById('viewQRCodeModal'));
-                modal.show();
+                // Gerar QR Code
+                const qrCodeDataURL = await generateQRCode(asset);
+                
+                // Armazenar em cache
+                appState.qrCodeCache.set(assetId, qrCodeDataURL);
+                
+                // Exibir QR Code
+                displayQRCode(asset, qrCodeDataURL);
                 
             } catch (error) {
                 console.error('Erro ao gerar QR Code:', error);
-                showAlert('Erro ao gerar QR Code', 'error');
+                showAlert('Erro ao gerar QR Code: ' + error.message, 'error');
             }
         }
 
-        async function generateQRCode(asset) {
-            // Verificar se já temos o QR Code em cache
-            const cacheKey = `asset_${asset.id}`;
-            if (appState.qrCodeCache.has(cacheKey)) {
-                return appState.qrCodeCache.get(cacheKey);
-            }
-            
+        function generateQRCode(asset) {
             return new Promise((resolve, reject) => {
                 try {
-                    // Dados para o QR Code
+                    // Criar dados para o QR Code
                     const qrData = {
                         id: asset.id,
                         name: asset.name,
@@ -5166,26 +5507,26 @@
                         model: asset.model,
                         serial: asset.serial_number,
                         status: asset.status,
-                        timestamp: new Date().toISOString()
+                        employee: asset.employee_id ? appState.employees.find(e => e.id === asset.employee_id)?.name : 'N/A',
+                        department: asset.department,
+                        lastUpdate: new Date().toISOString()
                     };
                     
                     const qrText = JSON.stringify(qrData);
                     
                     // Gerar QR Code
                     QRCode.toDataURL(qrText, {
-                        width: 200,
-                        height: 200,
+                        width: 256,
+                        height: 256,
                         margin: 1,
                         color: {
-                            dark: '#000000',
-                            light: '#FFFFFF'
+                            dark: '#4361ee',
+                            light: '#ffffff'
                         }
                     }, (err, url) => {
                         if (err) {
                             reject(err);
                         } else {
-                            // Armazenar em cache
-                            appState.qrCodeCache.set(cacheKey, url);
                             resolve(url);
                         }
                     });
@@ -5195,257 +5536,156 @@
             });
         }
 
-        function downloadQRCode() {
-            if (!appState.currentQRCode) return;
+        function displayQRCode(asset, qrCodeDataURL) {
+            const modalLabel = document.getElementById('viewQRCodeModalLabel');
+            const qrCodePreview = document.getElementById('qrCodePreview');
+            const qrAssetInfo = document.getElementById('qrAssetInfo');
             
-            const preview = document.getElementById('qrCodePreview');
-            if (!preview) return;
+            if (modalLabel) {
+                modalLabel.textContent = `QR Code - ${asset.name}`;
+            }
             
-            const img = preview.querySelector('img');
-            if (!img) return;
+            if (qrCodePreview) {
+                qrCodePreview.innerHTML = `
+                    <img src="${qrCodeDataURL}" alt="QR Code do Ativo ${asset.name}" class="img-fluid">
+                `;
+            }
             
+            if (qrAssetInfo) {
+                const employeeName = asset.employee_id 
+                    ? appState.employees.find(e => e.id === asset.employee_id)?.name 
+                    : 'N/A';
+                    
+                qrAssetInfo.innerHTML = `
+                    <p><strong>Nome:</strong> ${asset.name}</p>
+                    <p><strong>Tipo:</strong> ${asset.type}</p>
+                    <p><strong>Modelo:</strong> ${asset.model}</p>
+                    <p><strong>Nº Série:</strong> ${asset.serial_number || 'N/A'}</p>
+                    <p><strong>Responsável:</strong> ${employeeName}</p>
+                    <p><strong>Departamento:</strong> ${asset.department || 'N/A'}</p>
+                    <p><strong>Status:</strong> ${asset.status}</p>
+                `;
+            }
+            
+            // Armazenar QR Code atual para download
+            appState.currentQRCode = {
+                dataURL: qrCodeDataURL,
+                asset: asset
+            };
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('viewQRCodeModal'));
+            modal.show();
+        }
+
+        // Download do QR Code
+        document.getElementById('downloadQRCodeBtn')?.addEventListener('click', function() {
+            if (!appState.currentQRCode) {
+                showAlert('Nenhum QR Code disponível para download', 'warning');
+                return;
+            }
+            
+            const { dataURL, asset } = appState.currentQRCode;
+            
+            // Criar link de download
             const link = document.createElement('a');
-            link.download = `QRCode_${appState.currentQRCode.name.replace(/\s+/g, '_')}.png`;
-            link.href = img.src;
+            link.href = dataURL;
+            link.download = `qr_code_${asset.name.replace(/\s+/g, '_').toLowerCase()}.png`;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
             
             showAlert('QR Code baixado com sucesso!', 'success');
-        }
+        });
 
-        // Importação de CSV
-        function triggerEmployeesCSVImport() {
-            document.getElementById('csvEmployeesFileInput').click();
-        }
-
-        function triggerAssetsCSVImport() {
-            document.getElementById('csvFileInput').click();
-        }
-
-        async function handleEmployeesCSVImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            try {
-                const employees = await parseCSV(file);
-                await importEmployeesFromCSV(employees);
-                event.target.value = ''; // Resetar input
-            } catch (error) {
-                console.error('Erro ao importar CSV de funcionários:', error);
-                showAlert('Erro ao importar CSV de funcionários', 'error');
-            }
-        }
-
-        async function handleAssetsCSVImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            try {
-                const assets = await parseCSV(file);
-                await importAssetsFromCSV(assets);
-                event.target.value = ''; // Resetar input
-            } catch (error) {
-                console.error('Erro ao importar CSV de ativos:', error);
-                showAlert('Erro ao importar CSV de ativos', 'error');
-            }
-        }
-
-        function parseCSV(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        const csvText = e.target.result;
-                        const lines = csvText.split('\n');
-                        const headers = lines[0].split(',').map(h => h.trim());
-                        
-                        const data = [];
-                        for (let i = 1; i < lines.length; i++) {
-                            if (lines[i].trim() === '') continue;
-                            
-                            const values = lines[i].split(',').map(v => v.trim());
-                            const item = {};
-                            
-                            headers.forEach((header, index) => {
-                                item[header] = values[index] || '';
-                            });
-                            
-                            data.push(item);
-                        }
-                        
-                        resolve(data);
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                
-                reader.onerror = function() {
-                    reject(new Error('Erro ao ler arquivo'));
-                };
-                
-                reader.readAsText(file);
-            });
-        }
-
-        async function importEmployeesFromCSV(employees) {
-            if (!employees || employees.length === 0) {
-                showAlert('Nenhum dado válido encontrado no CSV', 'warning');
-                return;
-            }
-            
-            try {
-                const validEmployees = employees.filter(emp => emp.name && emp.email);
-                
-                if (validEmployees.length === 0) {
-                    showAlert('Nenhum funcionário válido encontrado no CSV', 'warning');
-                    return;
-                }
-                
-                // Formatar dados
-                const employeesToInsert = validEmployees.map(emp => ({
-                    name: formatName(emp.name),
-                    email: emp.email.toLowerCase(),
-                    position: emp.position || 'Não especificado',
-                    department: emp.department || 'Não especificado',
-                    status: emp.status || 'Ativo'
-                }));
-                
-                // Inserir no Supabase
-                const { error } = await supabase
-                    .from('employees')
-                    .insert(employeesToInsert);
-                
-                if (error) throw error;
-                
-                await loadAllData();
-                showAlert(`${validEmployees.length} funcionários importados com sucesso!`, 'success');
-                
-            } catch (error) {
-                console.error('Erro ao importar funcionários:', error);
-                showAlert('Erro ao importar funcionários do CSV', 'error');
-            }
-        }
-
-        async function importAssetsFromCSV(assets) {
-            if (!assets || assets.length === 0) {
-                showAlert('Nenhum dado válido encontrado no CSV', 'warning');
-                return;
-            }
-            
-            try {
-                const validAssets = assets.filter(asset => asset.name && asset.type);
-                
-                if (validAssets.length === 0) {
-                    showAlert('Nenhum ativo válido encontrado no CSV', 'warning');
-                    return;
-                }
-                
-                // Formatar dados
-                const assetsToInsert = validAssets.map(asset => ({
-                    name: asset.name,
-                    type: asset.type,
-                    model: asset.model || 'Não especificado',
-                    inches: asset.inches || null,
-                    description: asset.description || '',
-                    serial_number: asset.serial_number || '',
-                    employee_id: null, // Será atribuído posteriormente se necessário
-                    status: asset.status || 'Ativo',
-                    acquisition_date: asset.acquisition_date || null
-                }));
-                
-                // Inserir no Supabase
-                const { error } = await supabase
-                    .from('assets')
-                    .insert(assetsToInsert);
-                
-                if (error) throw error;
-                
-                await loadAllData();
-                showAlert(`${validAssets.length} ativos importados com sucesso!`, 'success');
-                
-            } catch (error) {
-                console.error('Erro ao importar ativos:', error);
-                showAlert('Erro ao importar ativos do CSV', 'error');
-            }
-        }
-
-        // Seleção de Ativos para QR Code em Lote
+        // Sistema de seleção de ativos para QR Codes em lote
         function initializeAssetSelection() {
             const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const selectAllAssetsBtn = document.getElementById('selectAllAssets');
+            const deselectAllAssetsBtn = document.getElementById('deselectAllAssets');
             const batchActions = document.getElementById('batchActions');
+            const selectedCount = document.getElementById('selectedCount');
+            const exportQRCodeBatchBtn = document.getElementById('exportQRCodeBatch');
             
+            // Selecionar/Deselecionar todos
             if (selectAllCheckbox) {
                 selectAllCheckbox.addEventListener('change', function() {
                     const checkboxes = document.querySelectorAll('.asset-checkbox');
                     checkboxes.forEach(checkbox => {
                         checkbox.checked = this.checked;
+                        updateAssetSelection(checkbox);
                     });
-                    
-                    updateSelectedAssets();
+                    updateBatchActions();
                 });
             }
             
-            // Atualizar seleção quando checkboxes individuais forem alterados
+            if (selectAllAssetsBtn) {
+                selectAllAssetsBtn.addEventListener('click', function() {
+                    const checkboxes = document.querySelectorAll('.asset-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = true;
+                        updateAssetSelection(checkbox);
+                    });
+                    updateBatchActions();
+                });
+            }
+            
+            if (deselectAllAssetsBtn) {
+                deselectAllAssetsBtn.addEventListener('click', function() {
+                    const checkboxes = document.querySelectorAll('.asset-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                        updateAssetSelection(checkbox);
+                    });
+                    updateBatchActions();
+                });
+            }
+            
+            // Event listeners para checkboxes individuais
             document.addEventListener('change', function(e) {
                 if (e.target.classList.contains('asset-checkbox')) {
-                    updateSelectedAssets();
+                    updateAssetSelection(e.target);
+                    updateBatchActions();
                 }
             });
             
-            // Botões de seleção em lote
-            document.getElementById('selectAllAssets')?.addEventListener('click', selectAllAssets);
-            document.getElementById('deselectAllAssets')?.addEventListener('click', deselectAllAssets);
-        }
-
-        function updateSelectedAssets() {
-            const checkboxes = document.querySelectorAll('.asset-checkbox:checked');
-            const selectedCount = checkboxes.length;
+            // Exportar QR Codes em lote
+            if (exportQRCodeBatchBtn) {
+                exportQRCodeBatchBtn.addEventListener('click', exportQRCodeBatch);
+            }
             
-            appState.selectedAssets.clear();
-            checkboxes.forEach(checkbox => {
+            function updateAssetSelection(checkbox) {
                 const assetId = parseInt(checkbox.getAttribute('data-asset-id'));
-                appState.selectedAssets.add(assetId);
-            });
-            
-            // Atualizar contador
-            const selectedCountElement = document.getElementById('selectedCount');
-            if (selectedCountElement) {
-                selectedCountElement.textContent = selectedCount;
-            }
-            
-            // Mostrar/ocultar ações em lote
-            const batchActions = document.getElementById('batchActions');
-            if (batchActions) {
-                if (selectedCount > 0) {
-                    batchActions.classList.add('active');
+                
+                if (checkbox.checked) {
+                    appState.selectedAssets.add(assetId);
                 } else {
-                    batchActions.classList.remove('active');
+                    appState.selectedAssets.delete(assetId);
                 }
             }
             
-            // Atualizar checkbox "Selecionar Todos"
-            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-            if (selectAllCheckbox) {
-                const totalCheckboxes = document.querySelectorAll('.asset-checkbox').length;
-                selectAllCheckbox.checked = selectedCount === totalCheckboxes && totalCheckboxes > 0;
-                selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < totalCheckboxes;
+            function updateBatchActions() {
+                const count = appState.selectedAssets.size;
+                
+                if (selectedCount) {
+                    selectedCount.textContent = count;
+                }
+                
+                if (batchActions) {
+                    if (count > 0) {
+                        batchActions.classList.add('active');
+                    } else {
+                        batchActions.classList.remove('active');
+                    }
+                }
+                
+                // Atualizar checkbox "Selecionar Todos"
+                if (selectAllCheckbox) {
+                    const totalCheckboxes = document.querySelectorAll('.asset-checkbox').length;
+                    selectAllCheckbox.checked = count > 0 && count === totalCheckboxes;
+                    selectAllCheckbox.indeterminate = count > 0 && count < totalCheckboxes;
+                }
             }
-        }
-
-        function selectAllAssets() {
-            const checkboxes = document.querySelectorAll('.asset-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
-            });
-            updateSelectedAssets();
-        }
-
-        function deselectAllAssets() {
-            const checkboxes = document.querySelectorAll('.asset-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            updateSelectedAssets();
         }
 
         async function exportQRCodeBatch() {
@@ -5455,86 +5695,88 @@
             }
             
             try {
-                showAlert('Gerando QR Codes em lote...', 'info');
+                showAlert(`Gerando ${appState.selectedAssets.size} QR Codes...`, 'info');
                 
-                // Obter ativos selecionados
-                const selectedAssets = appState.assets.filter(asset => 
-                    appState.selectedAssets.has(asset.id)
-                );
+                // Criar ZIP
+                const zip = new JSZip();
+                let generatedCount = 0;
                 
-                if (selectedAssets.length === 0) {
-                    showAlert('Nenhum ativo válido selecionado', 'warning');
-                    return;
-                }
-                
-                // Gerar QR Codes
-                const qrCodes = [];
-                for (const asset of selectedAssets) {
+                // Gerar QR Code para cada ativo selecionado
+                for (const assetId of appState.selectedAssets) {
+                    const asset = appState.assets.find(a => a.id === assetId);
+                    if (!asset) continue;
+                    
                     try {
-                        const qrCodeData = await generateQRCode(asset);
-                        qrCodes.push({
-                            asset: asset,
-                            qrCode: qrCodeData
-                        });
+                        // Gerar ou obter QR Code do cache
+                        let qrCodeDataURL;
+                        if (appState.qrCodeCache.has(assetId)) {
+                            qrCodeDataURL = appState.qrCodeCache.get(assetId);
+                        } else {
+                            qrCodeDataURL = await generateQRCode(asset);
+                            appState.qrCodeCache.set(assetId, qrCodeDataURL);
+                        }
+                        
+                        // Converter Data URL para blob
+                        const response = await fetch(qrCodeDataURL);
+                        const blob = await response.blob();
+                        
+                        // Adicionar ao ZIP
+                        const fileName = `qr_code_${asset.name.replace(/\s+/g, '_').toLowerCase()}.png`;
+                        zip.file(fileName, blob);
+                        
+                        generatedCount++;
+                        
                     } catch (error) {
                         console.error(`Erro ao gerar QR Code para ${asset.name}:`, error);
                     }
                 }
                 
-                if (qrCodes.length === 0) {
-                    showAlert('Erro ao gerar QR Codes', 'error');
+                if (generatedCount === 0) {
+                    showAlert('Nenhum QR Code foi gerado', 'error');
                     return;
                 }
                 
-                // Criar ZIP com todos os QR Codes
-                const zip = new JSZip();
-                const folder = zip.folder("QR_Codes_Ativos");
+                // Gerar arquivo ZIP
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
                 
-                qrCodes.forEach(item => {
-                    const base64Data = item.qrCode.split(',')[1];
-                    folder.file(`QRCode_${item.asset.name.replace(/\s+/g, '_')}.png`, base64Data, {base64: true});
-                });
-                
-                // Adicionar arquivo de informações
-                const infoContent = qrCodes.map(item => 
-                    `${item.asset.name} (${item.asset.type}): ${item.asset.model}`
-                ).join('\n');
-                
-                folder.file("informacoes_ativos.txt", infoContent);
-                
-                // Gerar e baixar ZIP
-                const zipBlob = await zip.generateAsync({type: "blob"});
-                const url = URL.createObjectURL(zipBlob);
+                // Criar link de download
                 const link = document.createElement('a');
-                link.href = url;
-                link.download = `QR_Codes_Ativos_${new Date().getTime()}.zip`;
+                link.href = URL.createObjectURL(zipBlob);
+                link.download = `qr_codes_ativos_${new Date().toISOString().split('T')[0]}.zip`;
+                document.body.appendChild(link);
                 link.click();
+                document.body.removeChild(link);
                 
-                URL.revokeObjectURL(url);
+                // Limpar seleção
+                appState.selectedAssets.clear();
+                updateBatchActions();
                 
-                showAlert(`${qrCodes.length} QR Codes exportados com sucesso!`, 'success');
+                showAlert(`${generatedCount} QR Codes exportados com sucesso!`, 'success');
                 
             } catch (error) {
                 console.error('Erro ao exportar QR Codes em lote:', error);
-                showAlert('Erro ao exportar QR Codes em lote', 'error');
+                showAlert('Erro ao exportar QR Codes: ' + error.message, 'error');
             }
         }
 
-        // Controle de Ponto
+        // Sistema de Controle de Ponto
         function initializePonto() {
-            const calcularBtn = document.getElementById('calcularPonto');
-            if (calcularBtn) {
-                calcularBtn.addEventListener('click', calcularPonto);
+            const calcularPontoBtn = document.getElementById('calcularPonto');
+            if (calcularPontoBtn) {
+                calcularPontoBtn.addEventListener('click', calcularPonto);
             }
         }
 
         function calcularPonto() {
+            // Obter valores do formulário
             const entrada = document.getElementById('entrada-auto').value;
-            const jornada = parseFloat(document.getElementById('jornada-type').value);
-            const intervalo = parseInt(document.getElementById('intervalo-auto').value);
+            const jornadaType = parseFloat(document.getElementById('jornada-type').value);
+            const intervalo = parseInt(document.getElementById('intervalo-auto').value) || 60;
+            const trabalhaSabado = document.getElementById('trabalha-sabado').checked;
             
+            // Validar entrada
             if (!entrada) {
-                showAlert('Por favor, informe o horário de entrada.', 'warning');
+                showAlert('Por favor, informe o horário de entrada', 'warning');
                 return;
             }
             
@@ -5543,105 +5785,136 @@
             const entradaMinutos = entradaHora * 60 + entradaMinuto;
             
             // Calcular horários
-            const saidaIntervaloMinutos = entradaMinutos + (jornada * 60 / 2);
+            const jornadaMinutos = jornadaType * 60;
+            
+            // Saída para intervalo (metade da jornada antes do intervalo)
+            const saidaIntervaloMinutos = entradaMinutos + (jornadaMinutos / 2) - (intervalo / 2);
+            const saidaIntervalo = formatMinutesToTime(saidaIntervaloMinutos);
+            
+            // Retorno do intervalo
             const retornoIntervaloMinutos = saidaIntervaloMinutos + intervalo;
-            const saidaMinutos = entradaMinutos + (jornada * 60);
+            const retornoIntervalo = formatMinutesToTime(retornoIntervaloMinutos);
             
-            // Converter para formato de hora
-            const formatarHora = (minutos) => {
-                const horas = Math.floor(minutos / 60) % 24;
-                const mins = Math.floor(minutos % 60);
-                return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-            };
+            // Saída final
+            const saidaMinutos = retornoIntervaloMinutos + (jornadaMinutos / 2) - (intervalo / 2);
+            const saida = formatMinutesToTime(saidaMinutos);
             
-            // Atualizar resultados
+            // Exibir resultados
             document.getElementById('entrada-resultado').textContent = entrada;
-            document.getElementById('saida-intervalo-resultado').textContent = formatarHora(saidaIntervaloMinutos);
-            document.getElementById('retorno-intervalo-resultado').textContent = formatarHora(retornoIntervaloMinutos);
-            document.getElementById('saida-resultado').textContent = formatarHora(saidaMinutos);
+            document.getElementById('saida-intervalo-resultado').textContent = saidaIntervalo;
+            document.getElementById('retorno-intervalo-resultado').textContent = retornoIntervalo;
+            document.getElementById('saida-resultado').textContent = saida;
             
             // Mostrar resultados
             document.getElementById('resultado').style.display = 'block';
             
-            // Verificar alerta de intervalo
+            // Verificar alertas de intervalo
+            verificarAlertaIntervalo(intervalo);
+        }
+
+        function formatMinutesToTime(minutes) {
+            const totalMinutes = Math.round(minutes);
+            const hours = Math.floor(totalMinutes / 60) % 24;
+            const mins = totalMinutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
+
+        function verificarAlertaIntervalo(intervalo) {
+            const alertaIntervalo = document.getElementById('alerta-intervalo');
+            const alertaIntervaloTexto = document.getElementById('alerta-intervalo-texto');
+            
             if (intervalo < 60) {
-                document.getElementById('alerta-intervalo-texto').textContent = 
-                    'Intervalo inferior a 60 minutos. Verifique a legislação trabalhista.';
-                document.getElementById('alerta-intervalo').style.display = 'block';
+                alertaIntervaloTexto.textContent = 'Intervalo mínimo de 1 hora não atingido!';
+                alertaIntervalo.style.display = 'block';
+            } else if (intervalo > 120) {
+                alertaIntervaloTexto.textContent = 'Intervalo máximo de 2 horas excedido!';
+                alertaIntervalo.style.display = 'block';
             } else {
-                document.getElementById('alerta-intervalo').style.display = 'none';
+                alertaIntervalo.style.display = 'none';
             }
         }
 
-        // Sistema de Alertas de Reativação
+        // Sistema de alertas de reativação
         function checkReactivationAlerts() {
             const today = new Date();
             const alerts = [];
             
-            // Verificar funcionários que estavam inativos e voltaram ao trabalho
+            // Verificar funcionários que foram reativados recentemente
             appState.employees.forEach(employee => {
-                // Simulação: se o status mudou de Inativo para Ativo recentemente
-                // Na implementação real, você precisaria de um histórico de status
-                if (employee.status === 'Ativo') {
-                    // Verificar se há alguma lógica de reativação pendente
-                    // Esta é uma implementação simplificada
-                    const needsReactivation = Math.random() < 0.1; // 10% de chance para demonstração
+                if (employee.status === 'Ativo' && employee.last_inactive_date) {
+                    const lastInactive = new Date(employee.last_inactive_date);
+                    const daysSinceReactivation = Math.floor((today - lastInactive) / (1000 * 60 * 60 * 24));
                     
-                    if (needsReactivation) {
-                        alerts.push({
-                            employeeId: employee.id,
-                            employeeName: employee.name,
-                            message: `O colaborador ${employee.name} necessita de reativação no sistema.`,
-                            timestamp: new Date()
-                        });
+                    if (daysSinceReactivation <= 7) {
+                        // Verificar se já existe um alerta para este funcionário
+                        const existingAlert = appState.reactivationAlerts.find(
+                            alert => alert.employeeId === employee.id && !alert.dismissed
+                        );
+                        
+                        if (!existingAlert) {
+                            alerts.push({
+                                employeeId: employee.id,
+                                employeeName: employee.name,
+                                reactivationDate: employee.last_inactive_date,
+                                daysSinceReactivation: daysSinceReactivation,
+                                dismissed: false
+                            });
+                        }
                     }
                 }
             });
             
-            return alerts;
-        }
-
-        function showReactivationAlert(alert) {
-            const messageElement = document.getElementById('reactivationAlertMessage');
-            if (messageElement) {
-                messageElement.textContent = alert.message;
-            }
+            // Adicionar novos alertas
+            alerts.forEach(alert => {
+                appState.reactivationAlerts.push(alert);
+            });
             
-            // Armazenar alerta no estado
-            appState.reactivationAlerts.push(alert);
+            // Salvar alertas no localStorage
             localStorage.setItem('reactivationAlerts', JSON.stringify(appState.reactivationAlerts));
             
-            // Mostrar modal
+            // Mostrar alertas não dispensados
+            showReactivationAlerts();
+        }
+
+        function showReactivationAlerts() {
+            const activeAlerts = appState.reactivationAlerts.filter(alert => !alert.dismissed);
+            
+            if (activeAlerts.length > 0) {
+                // Mostrar o primeiro alerta não dispensado
+                const alert = activeAlerts[0];
+                showReactivationAlertModal(alert);
+            }
+        }
+
+        function showReactivationAlertModal(alert) {
             const modal = new bootstrap.Modal(document.getElementById('reactivationAlertModal'));
+            const messageElement = document.getElementById('reactivationAlertMessage');
+            
+            if (messageElement) {
+                messageElement.textContent = 
+                    `O colaborador ${alert.employeeName} foi reativado há ${alert.daysSinceReactivation} dias. ` +
+                    `Verifique se todos os acessos foram restabelecidos corretamente.`;
+            }
+            
+            // Configurar botão de confirmação
+            const confirmBtn = document.getElementById('confirmReactivation');
+            if (confirmBtn) {
+                confirmBtn.onclick = function() {
+                    // Marcar alerta como dispensado
+                    alert.dismissed = true;
+                    localStorage.setItem('reactivationAlerts', JSON.stringify(appState.reactivationAlerts));
+                    modal.hide();
+                    
+                    // Mostrar próximo alerta, se houver
+                    setTimeout(showReactivationAlerts, 1000);
+                };
+            }
+            
             modal.show();
         }
 
-        document.getElementById('confirmReactivation')?.addEventListener('click', function() {
-            // Implementar lógica de confirmação de reativação
-            showAlert('Reativação confirmada com sucesso!', 'success');
-            
-            const modal = bootstrap.Modal.getInstance(document.getElementById('reactivationAlertModal'));
-            modal.hide();
-        });
-
-        // Verificar alertas de reativação periodicamente
-        setInterval(() => {
-            const alerts = checkReactivationAlerts();
-            alerts.forEach(alert => {
-                // Verificar se este alerta já foi mostrado
-                const alreadyShown = appState.reactivationAlerts.some(
-                    a => a.employeeId === alert.employeeId && 
-                         a.timestamp.toDateString() === alert.timestamp.toDateString()
-                );
-                
-                if (!alreadyShown) {
-                    showReactivationAlert(alert);
-                }
-            });
-        }, 30000); // Verificar a cada 30 segundos
-
-        // Final da inicialização
-        console.log('Sistema de Gestão Integrada inicializado com sucesso!');
+        // Adicionar função global para fechar alertas
+        window.closeAlert = closeAlert;
     </script>
 </body>
 </html>
